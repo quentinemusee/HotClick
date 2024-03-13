@@ -1,4 +1,6 @@
 venv/
 README.md
 LICENSE
-main.exe
+*.zip
+*.exe
+config.json
