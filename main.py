@@ -20,6 +20,11 @@
     |         |                 | different than its height.              |
     |         |                 | Fix the hotkey's position from being    |
     |         |                 | offseted after several HUD restoration. |
+    |---------|-----------------|-----------------------------------------|
+    |  0.3.0  |      2024-03-13 | Add a mechanism to select the config    |
+    |         |                 | file when several are available.        |
+    |         |                 | Add a relative path config file parsing |
+    |         |                 | mechanism.                              |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -29,10 +34,11 @@
 # =--------------= #
 
 from PyQt5.QtWidgets          import QApplication, QMainWindow, QPushButton, QWidget, QInputDialog, QShortcut, \
-    QSystemTrayIcon, QMenu, QAction, QSizeGrip, QSlider, QLabel
+    QSystemTrayIcon, QMenu, QAction, QSizeGrip, QSlider, QLabel, QFileDialog
 from PyQt5.QtCore             import Qt, QPoint, QSize, QRect
 from PyQt5.QtGui              import QPainter, QColor, QFont, QKeyEvent, QIcon, QCursor, QPaintEvent, QMouseEvent, \
 QCloseEvent, QResizeEvent
+from pathlib                  import Path
 from keyboard._keyboard_event import KeyboardEvent
 from datetime                 import datetime
 from pynput.mouse             import Button, Controller
@@ -47,6 +53,9 @@ import json
 import colorama
 import logging
 
+#TODO: Load/save the config file from a relatif path.
+#TODO: display a config selection menu if several son are detected.
+
 # =--------------------------------------------------------------------------------------------------------------= #
 
 
@@ -59,7 +68,7 @@ __contact__      = "quentin.raimbaud.contact@gmail.com"
 __date__         = "2024-03-13"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
-__version__      = "0.2.0"
+__version__      = "0.3.0"
 
 # =-------------------------------------------------= #
 
@@ -491,13 +500,10 @@ class MainWindow(QMainWindow):
             str, typing.Union[int, typing.Dict[str, typing.Dict[str, typing.Union[str, int]]]]
         ] = {"radius": 60, "hotkeys": {}}
         self.__input_hotkeys: typing.List[str] = []
+        self.__config_file: typing.Optional[Path] = None
 
         # Call the UI initialization method to initialize the UI itself.
         self.__init_UI()
-
-        # If a config.json file exist, try to read it.
-        if os.path.exists("config.json"):
-            self.__load_save()
 
     # ================= #
     # Overriden methods #
@@ -581,6 +587,33 @@ class MainWindow(QMainWindow):
 
         # Set the context menu for the tray icon.
         self.__tray_icon.setContextMenu(self.__tray_menu)
+
+        # Retrieve the list of json files at the same location as this file.
+        jsons: typing.List[str] = [file for file in os.listdir('.') if file.endswith(".json")]
+
+        # If no json file is present, use an empty "config.json" file created when the hotkey routine will start.
+        if not jsons:
+            self.__hotkey_size_label.setText(__file__ + " | " + str(Path(__file__).parent))
+            self.__config_file = Path("config.json")
+            return
+
+        # If one json only is present, use it as the config file.
+        if len(jsons) == 1:
+            self.__config_file = Path(jsons[0])
+            self.__load_save()
+            return
+
+        # If several jsons exist, open a QFileDialog to select one.
+        file_path: str
+        file_path, _ = QFileDialog.getOpenFileName(None, "Select the config file", "", "JSON Files (*.json)")
+
+        # If no json file has been selected, exit the app.
+        if not file_path:
+            self.close()
+
+        # Use the selected config file.
+        self.__config_file = Path(file_path)
+        self.__load_save()
 
     def __new_hotkey(self) -> None:
         """Create a new instance of CircleWindow."""
@@ -767,7 +800,7 @@ class MainWindow(QMainWindow):
         # of any exception raised, abort the loading.
         try:
             # Open the config.json file.
-            with open("config.json", 'r') as file:
+            with open(self.__config_file, 'r') as file:
                 # Read its json-parsed content.
                 json_data: typing.Dict[typing.Any, typing.Any] = json.load(file)
 
@@ -810,7 +843,7 @@ class MainWindow(QMainWindow):
         # of any exception raised, abort the saving.
         try:
             # Open the config.json file.
-            with open("config.json", 'w') as file:
+            with open(self.__config_file, 'w') as file:
                 # Write the json-dumped hotkeys dictionary.
                 file.write(json.dumps(self.__hotkeys, indent=4))
 

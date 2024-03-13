@@ -13,6 +13,14 @@
     |---------|-----------------|-----------------------------------------|
     |  0.2.0  |      2024-03-13 | Make the code cleaner, clean also the   |
     |         |                 | binary and add a zip mechanism.         |
+    |---------|-----------------|-----------------------------------------|
+    |  0.3.0  |      2024-03-13 | Remove the input at the end of the      |
+    |         |                 | compilation.                            |
+    |         |                 | Add a trivial logs mechanism using      |
+    |         |                 | the print function.                     |
+    |         |                 | Don't clean the binary file anymore.    |
+    |         |                 | Don't rename the binary with the        |
+    |         |                 | version of the software anymore.        |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -39,7 +47,7 @@ __contact__      = "quentin.raimbaud.contact@gmail.com"
 __date__         = "2024-03-13"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
-__version__      = "0.2.0"
+__version__      = "0.3.0"
 
 # =-------------------------------------------------= #
 
@@ -62,7 +70,7 @@ with open("main.py", 'r') as file:
 def compile_code() -> None:
     """Compile the main.py source code."""
 
-    # Compile main.py. 
+    # Compile main.py.
     PyInstaller.__main__.run([
         "--noconsole",
         "--onefile",
@@ -71,38 +79,37 @@ def compile_code() -> None:
     ])
 
     # Copy the resulting binary to the current (root) directory.
-    shutil.copy("./dist/main.exe", f"HotClickv{VERSION}.exe")
+    print(f"Copy and rename to \"HotClickv{VERSION}.exe\" the resulting binary.")
+    shutil.copy("./dist/main.exe", f"HotClick.exe")
 
 
 def clean() -> None:
     """Clean the temporary files created while compiling."""
 
-    # Try to delete the binary file.
-    try:
-        os.remove(f"HotClickv{VERSION}.exe")
-    except Exception:
-        pass 
-
     # Try to delete the "main.spec" file.
     try:
+        print("    -Removing main.spec")
         os.remove("main.spec")
     except Exception:
         pass 
 
     # Try to delete the "build" directory.
     try:
+        print("    -Removing build")
         shutil.rmtree("build")
     except Exception:
         pass  
 
     # Try to delete the "dist" directory.
     try:
+        print("    -Removing dist")
         shutil.rmtree("dist")
     except Exception:
         pass  
 
     # Try to delete the "__pycache__" directory.
     try:
+        print("    -Removing __pycache__")
         shutil.rmtree("__pycache__")
     except Exception:
         pass  
@@ -114,12 +121,15 @@ def zip_binary() -> None:
     # Create a ZipFile object.
     with zipfile.ZipFile(f"HotClickv{VERSION}.zip", 'w') as zip_object:
         # Add the binary file to the zip file.
-        zip_object.write(f"HotClickv{VERSION}.exe", compress_type=zipfile.ZIP_DEFLATED)
+        print(f"    -Zipping HotClick.exe")
+        zip_object.write(f"HotClick.exe", compress_type=zipfile.ZIP_DEFLATED)
 
         # Add the "icon.png" file to the zip file.
+        print("    -Zipping icon.png")
         zip_object.write("icon.png", compress_type=zipfile.ZIP_DEFLATED)
 
         # Add the "README.md" file to the zip file.
+        print("    -Zipping README.md")
         zip_object.write("README.md", compress_type=zipfile.ZIP_DEFLATED)
 
 # =--------------------------------------------------------------= #
@@ -133,17 +143,17 @@ def main() -> None:
     """Main function."""
 
     # Compile the code.
+    print("Compiling...")
     compile_code()
 
     # Create a zip archive containing the binary
     # file and the application's icon.
+    print("Zipping...")
     zip_binary()
 
     # Clean the compilation files.
+    print("Cleaning...")
     clean()
-
-    # Wait for the user to press enter then exit.
-    input("Press enter to exit.")
 
     # Exit with a status code 0.
     sys.exit(0)
