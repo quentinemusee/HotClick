@@ -1,2 +1,2 @@
 # HotClick
-A simple Hotkey software to bing hotkeys to click.
+A simple Hotkey software to bind hotkeys to click on screen.
