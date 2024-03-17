@@ -25,6 +25,8 @@
     |         |                 | file when several are available.        |
     |         |                 | Add a relative path config file parsing |
     |         |                 | mechanism.                              |
+    |---------|-----------------|-----------------------------------------|
+    |  0.3.1  |      2024-03-16 | Migrated from PyQt5 to PySide6.         |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -33,11 +35,11 @@
 # Libraries import #
 # =--------------= #
 
-from PyQt5.QtWidgets          import QApplication, QMainWindow, QPushButton, QWidget, QInputDialog, QShortcut, \
-    QSystemTrayIcon, QMenu, QAction, QSizeGrip, QSlider, QLabel, QFileDialog
-from PyQt5.QtCore             import Qt, QPoint, QSize, QRect
-from PyQt5.QtGui              import QPainter, QColor, QFont, QKeyEvent, QIcon, QCursor, QPaintEvent, QMouseEvent, \
-QCloseEvent, QResizeEvent
+from PySide6.QtWidgets        import QApplication, QMainWindow, QPushButton, QWidget, QSystemTrayIcon, QMenu, \
+    QSizeGrip, QSlider, QLabel, QFileDialog
+from PySide6.QtCore           import Qt, QPoint, QSize, QRect
+from PySide6.QtGui            import QPainter, QColor, QFont, QKeyEvent, QIcon, QCursor, QPaintEvent, QMouseEvent, \
+    QCloseEvent, QResizeEvent, QAction
 from pathlib                  import Path
 from keyboard._keyboard_event import KeyboardEvent
 from datetime                 import datetime
@@ -53,9 +55,6 @@ import json
 import colorama
 import logging
 
-#TODO: Load/save the config file from a relatif path.
-#TODO: display a config selection menu if several son are detected.
-
 # =--------------------------------------------------------------------------------------------------------------= #
 
 
@@ -65,10 +64,16 @@ import logging
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-03-13"
+__date__         = "2024-03-16"
+__license__      = "LGPL"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
-__version__      = "0.3.0"
+__todo__         = [
+    "Load / Save the config file from a relatif path",
+    "Add a hotkey mapping mechanism",
+    "Divide the code into different files"
+]
+__version__      = "0.3.1"
 
 # =-------------------------------------------------= #
 
@@ -285,7 +290,7 @@ class CircleWindow(QWidget):
  
         # If the event is a left click, update the old position attribute.
         if event.button() == Qt.LeftButton:
-            self.__old_position = event.globalPos()
+            self.__old_position = event.globalPosition().toPoint()
 
             # Trace is the CircleWindow instance just started moving.
             if not self.__is_moving:
@@ -332,14 +337,15 @@ class CircleWindow(QWidget):
 
         # If is_resizing is True, update the old position attribute.
         if self.__is_resizing:
-            self.__old_position = event.globalPos()
+            self.__old_position = event.globalPosition().toPoint()
             self.__is_resizing = False
 
         # If the mouse move with the left mouse button pressed, update the CircleWindow's position.
         if event.buttons() == Qt.LeftButton and self.__old_position is not None:
-            delta: QPoint = QPoint(event.globalPos() - self.__old_position)
+            tmp: QPoint = event.globalPosition().toPoint()
+            delta: QPoint = QPoint(tmp - self.__old_position)
             self.move(int(self.x() + delta.x()), int(self.y() + delta.y()))
-            self.__old_position = event.globalPos()
+            self.__old_position = tmp
 
     def resizeEvent(self, event: QResizeEvent):
         """
@@ -391,7 +397,6 @@ class CircleWindow(QWidget):
 
         # Initialize the corner grip.
         self.__corner_grip: QSizeGrip = QSizeGrip(self)
-
 
     def __update_hotkey(self, event: KeyboardEvent):
         """
@@ -582,8 +587,9 @@ class MainWindow(QMainWindow):
         # Instanciate a label to assign to the slider.
         self.__hotkey_size_label = QLabel(self)
         self.__hotkey_size_label.setAlignment(Qt.AlignCenter)
-        self.__hotkey_size_label.move(100, 10)
+        self.__hotkey_size_label.move(100, 20)
         self.__hotkey_size_label.setText("Hotkeys radius: 60")
+        self.__hotkey_size_label.adjustSize()
 
         # Set the context menu for the tray icon.
         self.__tray_icon.setContextMenu(self.__tray_menu)
@@ -593,7 +599,6 @@ class MainWindow(QMainWindow):
 
         # If no json file is present, use an empty "config.json" file created when the hotkey routine will start.
         if not jsons:
-            self.__hotkey_size_label.setText(__file__ + " | " + str(Path(__file__).parent))
             self.__config_file = Path("config.json")
             return
 
@@ -636,6 +641,7 @@ class MainWindow(QMainWindow):
         # Update the size attribute.
         self.__hotkeys["radius"] = int(self.__hotkey_size_slider.value())
         self.__hotkey_size_label.setText(f"""Hotkeys radius: {self.__hotkeys["radius"]}""")
+        self.__hotkey_size_label.adjustSize()
 
     def __start(self) -> None:
         """Close every instance of CircleWindow and start the hotkey program."""
@@ -897,6 +903,9 @@ def main() -> None:
     # Initialize the logger.
     init_logger()
 
+    # Disable high DPI scaling.
+    os.environ["QT_ENABLE_HIGHDPI_SCALING"] = '0'
+
     # Initialize the QApplication.
     app = QApplication([])
 
@@ -904,8 +913,8 @@ def main() -> None:
     main_window = MainWindow()
     main_window.show()
 
-    # Run te QApplication.
-    app.exec_()
+    # Run the QApplication.
+    app.exec()
 
 # =----------------------------------------= #
 
