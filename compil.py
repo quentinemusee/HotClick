@@ -118,7 +118,7 @@ def clean() -> None:
         pass  
 
 
-def     _binary() -> None:
+def zip_binary() -> None:
     """Zip the resulting binary and application's icon."""
 
     # Create a ZipFile object.
@@ -134,6 +134,10 @@ def     _binary() -> None:
         # Add the "README.md" file to the zip file.
         print("    -Zipping README.md")
         zip_object.write("README.md", compress_type=zipfile.ZIP_DEFLATED)
+
+        # Add the "LICENSE" file to the zip file.
+        print("    -Zipping LICENSE")
+        zip_object.write("LICENSE", compress_type=zipfile.ZIP_DEFLATED)
 
 # =---------------------------------------------------------------------------= #
 

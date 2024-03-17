@@ -26,9 +26,9 @@
     |         |                 | Add a relative path config file parsing |
     |         |                 | mechanism.                              |
     |---------|-----------------|-----------------------------------------|
-    |  0.3.1  |      2024-03-17 | Migrated from PyQt5 to PySide6.         |
+    |  0.3.1  |      2024-03-16 | Migrated from PyQt5 to PySide6.         |
     |---------|-----------------|-----------------------------------------|
-    |  0.3.2  |      2024-03-16 | Migrated the unhook function to a       |
+    |  0.3.2  |      2024-03-17 | Migrated the unhook function to a       |
     |         |                 | utils.py dedicated file.                |
     |         |                 | Migrated the logger content to a        |
     |         |                 | logger.py dedicated file.               |
@@ -36,6 +36,9 @@
     |         |                 | circle_window.py dedicated file.        |
     |         |                 | Migrated the MainWindow content to a    |
     |         |                 | main_window.py dedicated file.          |
+    |---------|-----------------|-----------------------------------------|
+    |  0.4.0  |      2024-03-17 | Improve the relative path config file   |
+    |         |                 | parsing mechanism.                      |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -62,10 +65,9 @@ __license__      = "LGPL"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
 __todo__         = [
-    "Load / Save the config file from a relatif path",
     "Add a hotkey mapping mechanism"
 ]
-__version__      = "0.3.2"
+__version__      = "0.4.0"
 
 # =-------------------------------------------------= #
 

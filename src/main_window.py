@@ -19,7 +19,7 @@
 from circle_window            import CircleWindow
 from PySide6.QtCore           import Qt, QPoint
 from PySide6.QtGui            import QAction, QIcon, QCloseEvent
-from PySide6.QtWidgets        import QMainWindow, QLabel, QMenu, QPushButton, QSlider, QSystemTrayIcon
+from PySide6.QtWidgets        import QMainWindow, QFileDialog, QLabel, QMenu, QPushButton, QSlider, QSystemTrayIcon
 from keyboard._keyboard_event import KeyboardEvent
 from pynput.mouse             import Button, Controller
 from pathlib                  import Path
@@ -32,7 +32,7 @@ import json
 import logger
 import utils
 
-# =------------------------------------------------------------------------------------------------= #
+# =-------------------------------------------------------------------------------------------------------------= #
 
 
 # =-------------------------------------------------= #
@@ -47,7 +47,10 @@ import utils
 # Declare the Mouse Controller.
 MOUSE: Controller = Controller()
 
-# =--------------------------= #
+# Retrieve and declare the binary directory path.
+PATH: Path = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
+
+# =---------------------------------------------------------------------------------------------------------= #
 
 
 # =--------------= #
@@ -168,7 +171,7 @@ class MainWindow(QMainWindow):
         self.__tray_icon.setContextMenu(self.__tray_menu)
 
         # Retrieve the list of json files at the same location as this file.
-        jsons: typing.List[str] = [file for file in os.listdir('.') if file.endswith(".json")]
+        jsons: typing.List[str] = [file for file in os.listdir(PATH) if file.endswith(".json")]
 
         # If no json file is present, use an empty "config.json" file created when the hotkey routine will start.
         if not jsons:
@@ -177,7 +180,7 @@ class MainWindow(QMainWindow):
 
         # If one json only is present, use it as the config file.
         if len(jsons) == 1:
-            self.__config_file = Path(jsons[0])
+            self.__config_file = Path(PATH / Path(jsons[0]))
             self.__load_save()
             return
 
