@@ -21,6 +21,9 @@
     |         |                 | Don't clean the binary file anymore.    |
     |         |                 | Don't rename the binary with the        |
     |         |                 | version of the software anymore.        |
+    |---------|-----------------|-----------------------------------------|
+    |  0.4.0  |      2024-03-17 | Adapt the code to work with the main.py |
+    |         |                 | file being within the src directory.    |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -44,10 +47,10 @@ import PyInstaller.__main__
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-03-13"
+__date__         = "2024-03-17"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
-__version__      = "0.3.0"
+__version__      = "0.4.0"
 
 # =-------------------------------------------------= #
 
@@ -57,7 +60,7 @@ __version__      = "0.3.0"
 # =-------------= #
 
 # Retrieve the version of the software from the main.py.
-with open("main.py", 'r') as file:
+with open("src/main.py", 'r') as file:
     VERSION: str = file.read().split("__version__")[1].split('"')[1]
 
 # =--------------------------------------------------------------= #
@@ -75,7 +78,7 @@ def compile_code() -> None:
         "--noconsole",
         "--onefile",
         "-w",
-        "main.py",
+        "src/main.py",
     ])
 
     # Copy the resulting binary to the current (root) directory.
@@ -115,7 +118,7 @@ def clean() -> None:
         pass  
 
 
-def zip_binary() -> None:
+def     _binary() -> None:
     """Zip the resulting binary and application's icon."""
 
     # Create a ZipFile object.
@@ -132,7 +135,7 @@ def zip_binary() -> None:
         print("    -Zipping README.md")
         zip_object.write("README.md", compress_type=zipfile.ZIP_DEFLATED)
 
-# =--------------------------------------------------------------= #
+# =---------------------------------------------------------------------------= #
 
 
 # =-----------= #
@@ -158,7 +161,7 @@ def main() -> None:
     # Exit with a status code 0.
     sys.exit(0)
 
-# =-------------------------------------------= #
+# =------------------------------------------= #
 
 
 #   Run the main function is
