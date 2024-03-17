@@ -19,7 +19,7 @@
 from circle_window            import CircleWindow
 from PySide6.QtCore           import Qt, QPoint
 from PySide6.QtGui            import QAction, QIcon, QCloseEvent
-from PySide6.QtWidgets        import QMainWindow, QFileDialog, QLabel, QMenu, QPushButton, QSlider, QSystemTrayIcon
+from PySide6.QtWidgets        import QMainWindow, QFileDialog, QLabel, QMenu, QPushButton, QSlider, QSystemTrayIcon, QHBoxLayout, QVBoxLayout, QWidget
 from keyboard._keyboard_event import KeyboardEvent
 from pynput.mouse             import Button, Controller
 from pathlib                  import Path
@@ -86,6 +86,9 @@ class MainWindow(QMainWindow):
         # Call the UI initialization method to initialize the UI itself.
         self.__init_UI()
 
+        # Look for a config file to load.
+        self.__init_load_config()
+
     # ================= #
     # Overriden methods #
     # ================= #
@@ -118,25 +121,125 @@ class MainWindow(QMainWindow):
     def __init_UI(self) -> None:
         """Initialize the UI of the CircleWindow instance itself."""
 
-        # Set the Geometry of the Window.
-        self.setGeometry(300, 300, 300, 200)
-
         # Set the title of the Window.
         self.setWindowTitle("HotClick")
 
-        # Initialize the "New Hotkey" Push Button, connect it to the
-        # new hotkey method and place it on the Main Window instance.
-        self.__new_hotkey_button = QPushButton("New Hotkey", self)
-        self.__new_hotkey_button.clicked.connect(self.__new_hotkey)
-        self.__new_hotkey_button.move(100, 80)
-        
-        # Initialize the "Start" Push Button, connect it to the
-        # start method and place it on the Main Window instance.
-        self.__start_button = QPushButton("Start", self)
-        self.__start_button.clicked.connect(self.__start)
-        self.__start_button.move(100, 120)
+        # Create the main widget and set it as the central widget.
+        main_widget: QWidget = QWidget()
+        self.setCentralWidget(main_widget)
 
-        # Initialize system tray icon, set is invisible yet and connect it to the tray icon activated method.
+        # Create the main layout.
+        main_layout: QVBoxLayout = QVBoxLayout(main_widget)
+
+        # Create the top frame and layout.
+        top_frame: QWidget = QWidget()
+        top_frame.setStyleSheet("background-color: rgb(220, 220, 220);")
+        top_layout: QVBoxLayout = QVBoxLayout(top_frame)
+
+        # Create a QLabel indicating what's the purpose of the QSlider and add it to the top layout.
+        self.__hotkey_size_label: QLabel = QLabel("Hotkeys radius: 60")
+        self.__hotkey_size_label.setAlignment(Qt.AlignCenter)
+        self.__hotkey_size_label.setStyleSheet("""
+            QLabel {
+                font-family: Ubuntu-Regular;
+                font-size: 14px;
+                color: rgb(0, 0, 0);
+                font-weight: bold;
+            }
+        """)
+        top_layout.addWidget(self.__hotkey_size_label)
+
+        # Create the QSlider for selecting the futurely created hotkeys and add it to the tp layout.
+        self.__hotkey_size_slider: QSlider = QSlider(Qt.Orientation.Horizontal)
+        self.__hotkey_size_slider.setMinimum(50)
+        self.__hotkey_size_slider.setMaximum(400)
+        self.__hotkey_size_slider.setValue(60)
+        self.__hotkey_size_slider.show()
+        self.__hotkey_size_slider.valueChanged.connect(self.__slider_value_change)
+        self.__hotkey_size_slider.setStyleSheet("""
+            QSlider::groove:horizontal {
+                border: 1px solid #999999;
+                height: 10px;
+                margin: 0px;
+                border-radius: 5px;
+            }
+            QSlider::handle:horizontal {
+                background: qradialgradient(spread:pad, cx:0.5, cy:0.5, radius:0.5, fx:0.5, fy:0.5, stop:0.0 rgba(255, 255, 255, 255), stop:1.0 rgba(0, 0, 0, 255));
+                border: 1px solid #5c5c5c;
+                width: 20px;
+                margin: -2px 0;
+                border-radius: 10px;
+            }
+            QSlider::add-page:horizontal {
+                background: #999999;
+                border: 1px solid #999999;
+                height: 10px;
+                margin: 0px;
+            }
+            QSlider::sub-page:horizontal {
+                background: #999999;
+                background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 rgb(150, 150, 255), stop: 1 rgb(150, 150, 255));
+                border: 1px solid #999999;
+                height: 10px;
+                margin: 0px;
+            }
+        """)
+        top_layout.addWidget(self.__hotkey_size_slider)
+
+        # Create the QPushButton for adding new hotkeys and add it to the top layout
+        new_hotkey_button = QPushButton("New Hotkey")
+        new_hotkey_button.setStyleSheet("""
+            QPushButton {
+                background-color: rgb(200, 200, 255);
+                border-style: outset;
+                border-width: 2px;
+                border-radius: 10px;
+                border-color: beige;
+                font: bold 14px;
+                min-width: 10em;
+                padding: 6px;
+            }
+            QPushButton:pressed {
+                background-color: rgb(100, 100, 200);
+                border-style: inset;
+            }
+        """)
+        new_hotkey_button.clicked.connect(self.__new_hotkey)
+        top_layout.addWidget(new_hotkey_button)
+
+        # Add the top frame to the main layout.
+        main_layout.addWidget(top_frame)
+
+
+        # Create the bottom frame and layout.
+        bottom_frame: QWidget = QWidget()
+        bottom_layout: QHBoxLayout = QHBoxLayout(bottom_frame)
+
+        # Create the start button for the bottom frame
+        start_button = QPushButton("Start")
+        start_button.clicked.connect(self.__start)
+        start_button.setStyleSheet("""
+            QPushButton {
+                background-color: rgb(200, 255, 200);
+                border-style: outset;
+                border-width: 2px;
+                border-radius: 10px;
+                border-color: beige;
+                font: bold 14px;
+                min-width: 6em;
+                padding: 6px;
+            }
+            QPushButton:pressed {
+                background-color: rgb(100, 200, 100);
+                border-style: inset;
+            }
+        """)
+        bottom_layout.addWidget(start_button, alignment=Qt.AlignRight)
+
+        # Add the bottom frame to the main layout
+        main_layout.addWidget(bottom_frame)
+
+        # Initialize the system tray icon, set is invisible yet and connect it to the tray icon activated method.
         self.__tray_icon = QSystemTrayIcon(self)
         self.__tray_icon.setIcon(QIcon("icon.png"))
         self.__tray_icon.setVisible(False)
@@ -149,26 +252,11 @@ class MainWindow(QMainWindow):
         self.__close_action.triggered.connect(self.close)
         self.__tray_menu.addAction(self.__close_action)
 
-        # Initialize the slider for the default hotkeys size.
-        self.__hotkey_size_slider = QSlider(Qt.Horizontal, self)
-        self.__hotkey_size_slider.setMinimum(50)
-        self.__hotkey_size_slider.setMaximum(400)
-        self.__hotkey_size_slider.setValue(60)
-        self.__hotkey_size_slider.setTickPosition(QSlider.TicksBelow)
-        self.__hotkey_size_slider.setTickInterval(5)
-        self.__hotkey_size_slider.move(100, 40)
-        self.__hotkey_size_slider.show()
-        self.__hotkey_size_slider.valueChanged.connect(self.__slider_value_change)
-
-        # Instanciate a label to assign to the slider.
-        self.__hotkey_size_label = QLabel(self)
-        self.__hotkey_size_label.setAlignment(Qt.AlignCenter)
-        self.__hotkey_size_label.move(100, 20)
-        self.__hotkey_size_label.setText("Hotkeys radius: 60")
-        self.__hotkey_size_label.adjustSize()
-
         # Set the context menu for the tray icon.
         self.__tray_icon.setContextMenu(self.__tray_menu)
+
+    def __init_load_config(self) -> None:
+        """Look for a config file to load."""
 
         # Retrieve the list of json files at the same location as this file.
         jsons: typing.List[str] = [file for file in os.listdir(PATH) if file.endswith(".json")]

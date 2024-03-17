@@ -39,6 +39,8 @@
     |---------|-----------------|-----------------------------------------|
     |  0.4.0  |      2024-03-17 | Improve the relative path config file   |
     |         |                 | parsing mechanism.                      |
+    |---------|-----------------|-----------------------------------------|
+    |  0.5.0  |      2024-03-17 | Improve the UI design of the software.  |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -65,9 +67,11 @@ __license__      = "LGPL"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
 __todo__         = [
-    "Add a hotkey mapping mechanism"
+    "Add a hotkey mapping mechanism",
+    "Make the hotkeys label fit their CircleWindow",
+    "Click as long as the hotkey is pressed"
 ]
-__version__      = "0.4.0"
+__version__      = "0.5.0"
 
 # =-------------------------------------------------= #
 
