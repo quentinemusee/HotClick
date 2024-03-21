@@ -16,10 +16,10 @@
     |         |                 | Double the sleep time before hotkey     |
     |         |                 | click to ensure the click isn't done    |
     |         |                 | too early.                              |
-    |         |                 | Handle hotkeys's ellipse with a width   |
-    |         |                 | different than its height.              |
-    |         |                 | Fix the hotkey's position from being    |
-    |         |                 | offseted after several HUD restoration. |
+    |         |                 | Handle hotkeys ellipse with a width     |
+    |         |                 | different from its height.              |
+    |         |                 | Fix the hotkey position from being      |
+    |         |                 | offset after several HUD restoration.   |
     |---------|-----------------|-----------------------------------------|
     |  0.3.0  |      2024-03-13 | Add a mechanism to select the config    |
     |         |                 | file when several are available.        |
@@ -41,6 +41,33 @@
     |         |                 | parsing mechanism.                      |
     |---------|-----------------|-----------------------------------------|
     |  0.5.0  |      2024-03-17 | Improve the UI design of the software.  |
+    |---------|-----------------|-----------------------------------------|
+    |  0.6.0  |      2024-03-21 | Add a BarMenu to the main UI containing |
+    |         |                 | a "File -> New", "File -> Open",        |
+    |         |                 | "File -> Save As" and "Settings"        |
+    |         |                 | buttons.                                |
+    |         |                 | Add a IMainWindow class that contains   |
+    |         |                 | the main window's UI without any        |
+    |         |                 | callback so this class can run in       |
+    |         |                 | standalone.                             |
+    |         |                 | Add a StatusBar linked to the main UI   |
+    |         |                 | with the logger, with the text color    |
+    |         |                 | adapted to the log level.               |
+    |         |                 | New hotkeys come with a bran new and    |
+    |         |                 | not already used default hotkey.        |
+    |         |                 | Duplicate hotkeys verification is now   |
+    |         |                 | performed when editing a hotkey and not |
+    |         |                 | when starting the main hotkey routine   |
+    |         |                 | anymore.                                |
+    |         |                 | Create and use a new config file when   |
+    |         |                 | the one used at start-up is corrupted.  |
+    |         |                 | The config file is now updated each     |
+    |         |                 | time the user's doing an action.        |
+    |         |                 | New hotkey default position will be the |
+    |         |                 | last position of a moved CircleWindow.  |
+    |         |                 | Add a fully functional Settings menu.   |
+    |         |                 | Add an icon to the software.            |
+    |         |                 | Very huge refactor.                     |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -52,6 +79,7 @@
 from main_window       import MainWindow
 from PySide6.QtWidgets import QApplication
 import os
+import sys
 
 # =------------------------------------= #
 
@@ -62,7 +90,7 @@ import os
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-03-17"
+__date__         = "2024-03-21"
 __license__      = "LGPL"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
@@ -71,7 +99,7 @@ __todo__         = [
     "Make the hotkeys label fit their CircleWindow",
     "Click as long as the hotkey is pressed"
 ]
-__version__      = "0.5.0"
+__version__      = "0.6.0"
 
 # =-------------------------------------------------= #
 
@@ -103,3 +131,4 @@ def main() -> None:
 # this script is run directly.
 if __name__ == '__main__':
     main()
+    sys.exit(0)

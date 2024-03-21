@@ -24,6 +24,9 @@
     |---------|-----------------|-----------------------------------------|
     |  0.4.0  |      2024-03-17 | Adapt the code to work with the main.py |
     |         |                 | file being within the src directory.    |
+    |---------|-----------------|-----------------------------------------|
+    |  0.5.0  |      2024-03-21 | Adapt the code to work with the igm     |
+    |         |                 | directory being created.                |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -47,10 +50,10 @@ import PyInstaller.__main__
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-03-17"
+__date__         = "2024-03-21"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
-__version__      = "0.4.0"
+__version__      = "0.5.0"
 
 # =-------------------------------------------------= #
 
@@ -127,9 +130,13 @@ def zip_binary() -> None:
         print(f"    -Zipping HotClick.exe")
         zip_object.write(f"HotClick.exe", compress_type=zipfile.ZIP_DEFLATED)
 
-        # Add the "icon.png" file to the zip file.
-        print("    -Zipping icon.png")
-        zip_object.write("icon.png", compress_type=zipfile.ZIP_DEFLATED)
+        # Add the "img/icon.png" file to the zip file.
+        print("    -Zipping img/icon.png")
+        zip_object.write("img/icon.png", compress_type=zipfile.ZIP_DEFLATED)
+
+        # Add the "img/color_selection.png" file to the zip file.
+        print("    -Zipping img/color_selection.png")
+        zip_object.write("img/color_selection.png", compress_type=zipfile.ZIP_DEFLATED)
 
         # Add the "README.md" file to the zip file.
         print("    -Zipping README.md")
