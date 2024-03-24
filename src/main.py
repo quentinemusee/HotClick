@@ -53,7 +53,7 @@
     |         |                 | Add a StatusBar linked to the main UI   |
     |         |                 | with the logger, with the text color    |
     |         |                 | adapted to the log level.               |
-    |         |                 | New hotkeys come with a bran new and    |
+    |         |                 | New hotkeys come with a brand new and   |
     |         |                 | not already used default hotkey.        |
     |         |                 | Duplicate hotkeys verification is now   |
     |         |                 | performed when editing a hotkey and not |
@@ -68,6 +68,19 @@
     |         |                 | Add a fully functional Settings menu.   |
     |         |                 | Add an icon to the software.            |
     |         |                 | Very huge refactor.                     |
+    |---------|-----------------|-----------------------------------------|
+    |  0.7.0  |      2024-03-23 | Refactor the directory structure of the |
+    |         |                 | project, creating a directory per       |
+    |         |                 | section to make it way more readable.   |
+    |         |                 | Introduce the QConfigList widget        |
+    |         |                 | Introduce the QPushButtonShortcut       |
+    |         |                 | widget.                                 |
+    |         |                 | Add a garbage mechanism to delete       |
+    |         |                 | unused widgets anymore.                 |
+    |         |                 |                                         |
+    |         |                 | Fix the style settings being applied    |
+    |         |                 | even when clicking on "No" to the       |
+    |         |                 | YesNoCancelDialog.                      |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -91,17 +104,19 @@ import sys
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
 __date__         = "2024-03-21"
-__license__      = "LGPL"
+__license__      = "LGPL-2.1"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
 __todo__         = [
     "Add a hotkey mapping mechanism",
     "Make the hotkeys label fit their CircleWindow",
-    "Click as long as the hotkey is pressed"
+    "Click as long as the hotkey is pressed",
+    "Refactor the whole code to ensure 'parent' is correctly set.",
+    "Remove use of '__' for attribute: this is definitely a bad practice."
 ]
-__version__      = "0.6.0"
+__version__      = "0.7.0"
 
-# =-------------------------------------------------= #
+# =--------------------------------------------------------------------= #
 
 
 # =-----------= #
