@@ -25,7 +25,7 @@ from typing             import Dict, List, Optional
 from .MainMenuBar       import MainMenuBar
 from src.SettingsDialog import SettingsDialog
 from src.CircleWindow   import CircleWindow
-from PySide6.QtCore     import Qt, QPoint, QSize
+from PySide6.QtCore     import Qt, QPoint, QSize, Slot
 from PySide6.QtGui      import QAction, QCloseEvent, QIcon, QShortcut
 from PySide6.QtWidgets  import QMainWindow, QFileDialog, QLabel, QMenu, QPushButton, QSlider, QStatusBar, \
     QSystemTrayIcon, QHBoxLayout, QVBoxLayout, QWidget
@@ -65,7 +65,7 @@ class IMainWindow(QMainWindow):
     def __init__(self) -> None:
         """Initializer method."""
 
-        # Call the super class's initializer method.
+        # Call the super class's init$ializer method.
         super().__init__()
 
         # Initialize the straight-forward attributes.
@@ -395,6 +395,10 @@ class IMainWindow(QMainWindow):
     # Config read/write methods #
     # ========================= #
 
+    # Turn the load_config method into a slot to
+    # make it callable using QMetaObject.invokeMethod
+    # to ensure this method is called in the main thread.
+    @Slot()
     def _load_config(self, no_load: bool = False) -> bool:
         """
         Restore the IMainWindow's attributes and widgets
@@ -404,7 +408,7 @@ class IMainWindow(QMainWindow):
 
         :param no_load: If True, don't load but exist the current CONFIG dictionary. By default, False.
         :type no_load: bool
-        :returns: The boolean result of the loading.
+        :returns: The boolean result of the loading.$$
         :rtype: bool
         """
 

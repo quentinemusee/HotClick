@@ -21,6 +21,7 @@
         "background-color": "#18529a"
     },
     "Custom": {
+        "circlewindow-background-color": "#cb321d",
         "middleground-color": "#106c94",
         "invalid-color": "#FF0000",
         "selected-background-color": "#087e06"

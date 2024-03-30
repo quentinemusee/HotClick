@@ -56,7 +56,8 @@ DEFAULT_CONFIG: Dict[str, Union[int, str, List[int], Dict[str, Dict[str, Union[s
             "Settings": "CTRL+ALT+S",
             "New Hotkey": 'N',
             "Start": 'S',
-            "Disable Hotkeys": '*'
+            "Disable Hotkeys": '*',
+            "Restore Application": '$',
         },
         "custom": {}
     }
@@ -87,6 +88,7 @@ DEFAULT_STYLE: Dict[str, Union[str, Dict[str, str]]] = {
         "background-color": "#18529a"
     },
     "Custom": {
+        "circlewindow-background-color": "#ff0000",
         "middleground-color": "#106c94",
         "invalid-color": "#FF0000",
         "selected-background-color": "#087e06"

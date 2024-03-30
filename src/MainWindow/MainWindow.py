@@ -21,8 +21,8 @@ from .IMainWindow       import IMainWindow
 from src.SettingsDialog import SettingsDialog
 from src.CircleWindow   import CircleWindow
 from src.config         import CONFIG
-from PySide6.QtCore     import QPoint, QSize
-from PySide6.QtGui      import QCursor, QKeySequence, QShortcut
+from PySide6.QtCore     import Qt, QMetaObject, QPoint, QSize
+from PySide6.QtGui      import QCloseEvent, QCursor, QKeySequence, QShortcut
 from PySide6.QtWidgets  import QFileDialog, QSystemTrayIcon
 from pynput.mouse       import Button, Controller
 from pathlib            import Path
@@ -30,12 +30,11 @@ from src.config         import CONFIG_FILE
 from src.utils          import PATH
 import typing
 import src.logger           as logger
-import time
 import keyboard
 import src.config           as config
 import src.utils            as utils
 
-# =---------------------------------------------------------= #
+# =----------------------------------------------------------------------= #
 
 
 # =--------------------------------------------------= #
@@ -50,7 +49,10 @@ import src.utils            as utils
 # Declare the Mouse Controller.
 MOUSE: Controller = Controller()
 
-# =--------------------------= #
+# Declare a hotkey routine flag.
+HOTKEY_ROUTINE_IS_RUNNING: bool = False
+
+# =---------------------------------= #
 
 
 # =--------------= #
@@ -101,12 +103,33 @@ class MainWindow(IMainWindow):
         # Set the software builtin shortcuts.
         self.update_builtin_shortcuts()
 
+        # Initialize the main hotkey routine.
+        self._hook: typing.Callable[[], None] = keyboard.on_press(self._hotkey_routine)
+
         # Display a successful message on the StatusBar if the init_error_message
         # attribute is None, otherwise display such an error message.
         if self._init_error_message is None:
             logger.info("HotClick successfully launched!")
         else:
             logger.error(self._init_error_message)
+
+    # ================== #
+    # Overridden methods #
+    # ================== #
+
+    def closeEvent(self, event: QCloseEvent):
+        """
+        Overridden closeEvent method.
+        This method is called when the MainWindow instance get closed.
+
+        :param PySide6.QtGui.QCloseEvent event: The QCloseEvent received.
+        """
+
+        # Unhook the hotkey_routine keyboard callback method.
+        utils.unhook(self._hotkey_routine)
+
+        # Call the super class's closeEvent method.
+        super().closeEvent(event)
 
     # ============== #
     # Public methods #
@@ -128,7 +151,7 @@ class MainWindow(IMainWindow):
                 "Save As...": self._file_save_as_callback,
                 "Settings": self._settings_callback,
                 "New Hotkey": self._new_hotkey,
-                "Start": self._start
+                "Start": self._start,
             }
             if action in tmp:
                 self._builtin_shortcuts[action]: QShortcut = QShortcut(
@@ -186,6 +209,9 @@ class MainWindow(IMainWindow):
     def _start(self) -> None:
         """Close every instance of CircleWindow and start the hotkey program."""
 
+        # Make the HOTKEY_ROUTINE_IS_RUNNING global variable writable.
+        global HOTKEY_ROUTINE_IS_RUNNING
+
         # Ensure no CircleWindow has no associated hotkey
         # before to start the main hotkeys routine.
         if "" in self.hotkeys:
@@ -201,35 +227,40 @@ class MainWindow(IMainWindow):
         # Set the MainWindow instance visible on the tray.
         self._tray_icon.setVisible(True)
 
+        # Set HOTKEY_ROUTINE_IS_RUNNING to True.
+        HOTKEY_ROUTINE_IS_RUNNING = True
+
         # Hide the MainWindow instance.
         self.hide()
-
-        # Launch the main hotkey routine.
-        self._hook: typing.Callable[..., None] = keyboard.on_press(self._hotkey_routine)
 
         # Trace.
         logger.info("Program started")
 
-    def _tray_icon_activated(self, reason: int) -> None:
+    def _tray_icon_activated(self, reason: QSystemTrayIcon.ActivationReason.Trigger) -> None:
         """
         Callback method when the tray icon get activated through any mouse click.
 
-        :param int reason: An integer representing the type of mouse click.
+        :param reason: The type of mouse click used on the tray icon.$
+        :type reason: QSystemTrayIcon.ActivationReason.Trigger
         """
+
+        # Make the HOTKEY_ROUTINE_IS_RUNNING global variable writable.
+        global HOTKEY_ROUTINE_IS_RUNNING
 
         # If the application got left-clicked, restore the application.
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            # Show the application
-            self.show()
+            # Show the application&
+            QMetaObject.invokeMethod(self, typing.cast(bytes, "show"), Qt.ConnectionType.QueuedConnection)
 
             # Set the MainWindow instance invisible on the tray
-            self._tray_icon.hide()
+            # $self._tray_icon.hide()
+            QMetaObject.invokeMethod(self._tray_icon, typing.cast(bytes, "hide"), Qt.ConnectionType.QueuedConnection)
 
-            # Deactivate the keyboard listener for invoking the hotkey routine method.
-            utils.unhook(self._hook)
+            # Set HOTKEY_ROUTINE_IS_RUNNING to False.$
+            HOTKEY_ROUTINE_IS_RUNNING = False
 
             # Restore the CircleWindow by reloading the config file.
-            self._load_config()
+            QMetaObject.invokeMethod(self, typing.cast(bytes, "_load_config"), Qt.ConnectionType.QueuedConnection)
 
             # Display a successful message on the StatusBar.
             logger.info("HotClick successfully restored!")
@@ -239,9 +270,9 @@ class MainWindow(IMainWindow):
             pos = QCursor.pos()
             self._tray_menu.exec(QPoint(pos.x(), pos.y() - 30))
 
-    def _hotkey_routine(self, event: utils.KeyboardEvent):
+    def _hotkey_routine(self, event: utils.KeyboardEvent) -> None:
         """
-        un the hotkey routine for clicking on the previously creates CircleWindow instances.
+        Run the hotkey routine for clicking on the previously creates CircleWindow instances.
 
         :param event: The QMouseEvent received.
         :type event: utils.KeyboardEvent
@@ -250,17 +281,22 @@ class MainWindow(IMainWindow):
         # Retrieve the event's hotkey string value.
         original_event_hotkey: str = event.name.lower()
 
-        # Compute the base hotkey.
-        base: str = ""
-        if keyboard.is_pressed("ctrl"):
-            base += "ctrl+"
-        if keyboard.is_pressed("maj"):
-            base += "maj+"
-        if keyboard.is_pressed("alt"):
-            base += "alt+"
+        # Retrieve the event's hotkey string.
+        event_hotkey: str = utils.handle_hotkey(event)
 
-        # Update the event_hotkey.
-        event_hotkey = base + original_event_hotkey
+        # If the event hotkey is the "Restore Application" shortcut,
+        # even if the HOTKEY_ROUTINE_IS_RUNNING global variable is
+        # still False, restore the application from being minimized
+        # and return here.
+        if event_hotkey.upper() == CONFIG["shortcuts"]["builtin"]["Restore Application"]:
+            if self.isMinimized():
+                self.showNormal()
+                return
+
+        # If the HOTKEY_ROUTINE_IS_RUNNING
+        # global variable is False, return here.
+        if not HOTKEY_ROUTINE_IS_RUNNING:
+            return
 
         # If the event hotkey is the "Disable Hotkeys" shortcut,
         # update the disable_hotkeys attribute and return.
@@ -272,6 +308,12 @@ class MainWindow(IMainWindow):
         if self._disable_hotkeys:
             return
 
+        # If the event hotkey is the "Restore Application" shortcut,
+        # restore the MainWindow and return here.
+        if event_hotkey.upper() == CONFIG["shortcuts"]["builtin"]["Restore Application"]:
+            self._tray_icon_activated(QSystemTrayIcon.ActivationReason.Trigger)
+            return
+
         # If the event_hotkey match a previously defined CircleWindow's position, click it.
         if event_hotkey in CONFIG["hotkeys"]:
             # Get the current mouse position before clicking.
@@ -280,8 +322,8 @@ class MainWindow(IMainWindow):
             while keyboard.is_pressed(original_event_hotkey):
                 # Move the mouse to the location to click on.
                 MOUSE.position = (
-                    CONFIG["hotkeys"][event_hotkey]['x'],
-                    CONFIG["hotkeys"][event_hotkey]['y']
+                    CONFIG["hotkeys"][event_hotkey]['x']-int(CONFIG["hotkeys"][event_hotkey]['w']/2),
+                    CONFIG["hotkeys"][event_hotkey]['y']-int(CONFIG["hotkeys"][event_hotkey]['h']/2)
                 )
 
             # Simulate a Left Click.
@@ -293,8 +335,8 @@ class MainWindow(IMainWindow):
             # Trace.
             logger.info(f"Hotkey {event_hotkey} pressed")
         # Otherwise, if the event_hotkey match a custom shortcut, execute it.
-        elif event_hotkey in utils.PSD_KB and utils.PSD_KB[event_hotkey] in CONFIG["shortcuts"]["custom"]:
-            bind_to: str = CONFIG["shortcuts"]["custom"][utils.PSD_KB[event_hotkey]]
+        elif event_hotkey in CONFIG["shortcuts"]["custom"]:
+            bind_to: str = CONFIG["shortcuts"]["custom"][event_hotkey]
             if bind_to == "LeftButton":
                 MOUSE.click(Button.left)
             elif bind_to == "RightButton":
@@ -399,7 +441,10 @@ class MainWindow(IMainWindow):
         if self._settings_dialog is not None:
             self._settings_dialog.set_stylesheets()
 
-        # Set the CircleWindow Stylesheets.
-        # ...
+        # Set the CircleWindow Stylesheets calling
+        # its repaint method to invoke the overridden
+        # paintEvent method from the CircleWindow.
+        for circle_window in self._circle_windows:
+            circle_window.repaint()
 
 # =---------------------------------------------------------------------------------------------------------------= #

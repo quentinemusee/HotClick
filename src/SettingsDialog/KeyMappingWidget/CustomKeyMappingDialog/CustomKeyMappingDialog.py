@@ -15,17 +15,15 @@
 # Libraries import #
 # =--------------= #
 
-from typing                    import Any
 from ...ISettingsContentWidget import ISettingsContentWidget
-from src.UtilityWidgets        import AddRemoveEditEnum, QConfigList, QPushButtonShortcut
+from src.UtilityWidgets        import QConfigList, QPushButtonShortcut
 from PySide6.QtCore            import Qt
 from PySide6.QtGui             import QCloseEvent, QKeyEvent
 from PySide6.QtWidgets         import QDialog, QVBoxLayout, QWidget
 from src.config                import CONFIG, STYLE
-import src.config                  as config
 import src.utils                   as utils
 
-# =-------------------------------------------------------------= #
+# =----------------------------------------------------------------= #
 
 
 # =--------------------------------------------------= #
@@ -217,6 +215,7 @@ class CustomKeyMappingWidget(ISettingsContentWidget):
 
     def _save(self) -> None:
         """Callback method when the save button get clicked."""
+
         utils.update_dict(
             CONFIG,
             "shortcuts",
@@ -224,7 +223,12 @@ class CustomKeyMappingWidget(ISettingsContentWidget):
             value={e[0]: e[1] for e in self._config_list.widgets_content}
         )
 
+        # Calling the super class's save method.
         super()._save()
+
+        # Closing the CustomKeyMappingDialog.
+        if hasattr(self.parent(), "done"):
+            self.parent().done(0)
 
     def _is_valid(self) -> bool:
         """

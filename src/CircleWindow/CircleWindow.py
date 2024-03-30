@@ -20,11 +20,11 @@ from src.config        import CONFIG
 from PySide6.QtCore    import Qt, QPoint, QRect, QSize
 from PySide6.QtGui     import QColor, QFont, QPainter, QMouseEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import QSizeGrip, QWidget
+from src.config        import STYLE
 import typing
 import src.logger          as logger
 import keyboard
 import string
-import src.config          as config
 import src.utils           as utils
 
 # =---------------------------------------------------------------------------------------= #
@@ -153,7 +153,7 @@ class CircleWindow(QWidget):
 
         # Set the QPainter instance antialiasing and brush color.
         qp.setRenderHint(QPainter.Antialiasing)
-        qp.setBrush(QColor(255, 0, 0, 127))
+        qp.setBrush(QColor("#80" + STYLE["Custom"]["circlewindow-background-color"][1:]))
 
         # Give the QPainter instance an Ellipse shape.
         qp.drawEllipse(8, 8, self.width()-8, self.height()-8)
@@ -208,6 +208,12 @@ class CircleWindow(QWidget):
             self.deleteLater()
             getattr(self.__virtual_parent, "circle_windows").remove(self)
             utils.update_dict(CONFIG, "hotkeys", self.__hotkey.lower(), delete=True)
+
+            # Set KEYBOARD_HOTKEY_INPUT_FLAG to False
+            # and unhook the hook function if it exists.
+            if self.__hook is not None:
+                KEYBOARD_HOTKEY_INPUT_FLAG = False
+                utils.unhook(self.__hook)
 
             # Trace.
             logger.info(f"Delete the hotkey \"{self.__hotkey.upper()}\"")

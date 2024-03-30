@@ -69,7 +69,7 @@
     |         |                 | Add an icon to the software.            |
     |         |                 | Very huge refactor.                     |
     |---------|-----------------|-----------------------------------------|
-    |  0.7.0  |      2024-03-23 | Refactor the directory structure of the |
+    |  0.7.0  |      2024-03-29 | Refactor the directory structure of the |
     |         |                 | project, creating a directory per       |
     |         |                 | section to make it way more readable.   |
     |         |                 | Introduce the QConfigList widget.       |
@@ -84,6 +84,40 @@
     |         |                 | even when clicking on "No" to the       |
     |         |                 | YesNoCancelDialog.                      |
     |---------|-----------------|-----------------------------------------|
+    |  0.8.0  |      2024-03-31 | Refactor the way the hotkeys are        |
+    |         |                 | handled by hooking a callback method    |
+    |         |                 | infinitely but controlling the handling |
+    |         |                 | via a global boolean variable.          |
+    |         |                 | Edit the way QPushButtonShortcuts       |
+    |         |                 | handle new shortcut to use the same     |
+    |         |                 | method as the MainWindow. This          |
+    |         |                 | implementation result in not using Qt's |
+    |         |                 | keyboard methods but the python"s       |
+    |         |                 | keyboard library, which handle global   |
+    |         |                 | keyboard event.                         |
+    |         |                 | Remove the dumb Qt's KeySequence to     |
+    |         |                 | keyboard's keys from version 0.7.0.     |
+    |         |                 | When clicking te save button from the   |
+    |         |                 | Custom Shortcuts menu, close the        |
+    |         |                 | CustomKeyMappingDialog.                 |
+    |         |                 | Add a new Builtin shortcut "Restore     |
+    |         |                 | Application" for restoring the software |
+    |         |                 | when the main hotkey routine is         |
+    |         |                 | running or when the software is         |
+    |         |                 | minimized.                              |
+    |         |                 | Add two new options to the "Theme"      |
+    |         |                 | settings menu.                          |
+    |         |                 | Don't consider the typical failed       |
+    |         |                 | unhook as critical anymore.             |
+    |         |                 | Fix the CircleWindows from keeping the  |
+    |         |                 | hotclick editing focus even after being |
+    |         |                 | deleted.                                |
+    |         |                 | Fix the Hotclicks from being offset to  |
+    |         |                 | the bottom-right corner of the          |
+    |         |                 | CircleWindows.                          |
+    |         |                 | Fix the builtin shortcuts handling      |
+    |         |                 | mouse clicks shortcuts binding.         |
+     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
 
@@ -105,7 +139,7 @@ import sys
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-03-21"
+__date__         = "2024-03-31"
 __license__      = "LGPL-2.1"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
@@ -113,7 +147,7 @@ __todo__         = [
     "Make the hotkeys label fit their CircleWindow",
     "Remove use of '__' for attribute: this is definitely a bad practice."
 ]
-__version__      = "0.7.0"
+__version__      = "0.8.0"
 
 # =--------------------------------------------------------------------= #
 

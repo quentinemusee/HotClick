@@ -92,6 +92,10 @@ class ThemeWidget(ISettingsContentWidget):
                 ("QPushButton", "background-color", "Buttons background color"),
                 ("QPushButton:pressed", "background-color", "Pressed buttons background color")
             ],
+            [
+                ("QPushButton:hover", "border-color", "Buttons hover border color"),
+                ("Custom", "circlewindow-background-color", "Hotkeys circle background color")
+            ],
         ]:
             # Create a horizontal layout for the style button to be created.
             horizontal_layout: QHBoxLayout = QHBoxLayout(self)

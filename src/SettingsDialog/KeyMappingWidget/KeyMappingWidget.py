@@ -87,7 +87,7 @@ class KeyMappingWidget(ISettingsContentWidget):
             initial=tuple(
                 (
                     QLabel(text=bind),
-                    QPushButtonShortcut(text=CONFIG["shortcuts"]["builtin"][bind], allow_mouse_buttons=True),
+                    QPushButtonShortcut(text=CONFIG["shortcuts"]["builtin"][bind]),
                 )
                 for bind in CONFIG["shortcuts"]["builtin"]
             ),

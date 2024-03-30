@@ -27,12 +27,15 @@
 # Libraries import #
 # =--------------= #
 
-from typing            import List, Optional, Type, Union
-from PySide6.QtCore    import Qt, QEvent
-from PySide6.QtGui     import QColor, QFont, QIcon, QKeyEvent, QPainter, QPaintEvent, QPixmap, QMouseEvent
+from typing            import Callable, Optional, Type, Union
+from PySide6.QtCore    import Qt, QEvent, QMetaObject
+from PySide6.QtGui     import QCloseEvent, QColor, QFont, QIcon, QKeyEvent, QPainter, QPaintEvent, QPixmap, QMouseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QWidget
+import typing
+import keyboard
+import src.utils           as utils
 
-# =----------------------------------------------------------------------------------------------------= #
+# =-----------------------------------------------------------------------------------------------------------------= #
 
 
 # =--------= #
@@ -68,6 +71,7 @@ class TransparentFullscreenWindow(QDialog):
 
         # Set the straight-forward attributes.
         self._allow_mouse_buttons: bool = _allow_mouse_buttons
+        self._hotkey_routine_hook: Callable[[], None] = keyboard.on_press(self._hotkey_pressed)
         self._shortcut: str = ""
         self._to_be_closed: bool = False
 
@@ -94,6 +98,20 @@ class TransparentFullscreenWindow(QDialog):
     # Overridden methods #
     # ================== #
 
+    def closeEvent(self, event: QCloseEvent):
+        """
+        Overridden closeEvent method.
+        This method is called when the QPushButtonShortcut instance get closed.
+
+        :param PySide6.QtGui.QCloseEvent event: The QCloseEvent received.
+        """
+
+        # Unhook the hotkey_routine keyboard callback method.
+        utils.unhook(self._hotkey_routine_hook)
+
+        # Call the super class's closeEvent method.
+        super().closeEvent(event)
+
     def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
 
         # Handle any QEvent.KeyPress event and QEvent.MouseButtonPress
@@ -112,43 +130,6 @@ class TransparentFullscreenWindow(QDialog):
 
         # Ensure the event is not handled by watched.
         return True
-
-    def keyPressEvent(self, event: QKeyEvent) -> None:
-        """
-        Overridden keyPressEvent method.
-        This method is called when any keyboard shortcut is pressed.
-
-        :param event: The QKeyEvent received.
-        :type event: QKeyEvent
-        """
-
-        # Retrieve the QKeyEvent's text.
-        key: str = event.text()
-
-        # If only modifiers keys are pressed, return here.
-        if not key or (key.endswith("+")):
-            return
-
-        # Retrieve the modifiers keys to
-        # compute the string shortcut.
-        modifiers: Qt.KeyboardModifier = event.modifiers()
-        modifier_keys: List[str] = []
-        if modifiers & Qt.KeyboardModifier.ShiftModifier:
-            modifier_keys.append("Shift")
-        if modifiers & Qt.KeyboardModifier.ControlModifier:
-            modifier_keys.append("Ctrl")
-        if modifiers & Qt.KeyboardModifier.AltModifier:
-            modifier_keys.append("Alt")
-
-        try:
-            self._shortcut: str = "+".join(
-                modifier_keys + [chr(event.key())]
-            ).upper().replace('&', "&&").replace(' ', "SPACE")
-        except ValueError:
-            self._shortcut: str = "+".join(
-                modifier_keys + [Qt.Key(event.key()).name.replace("Key_", "").lower()]
-            ).upper().replace('&', "&&")
-        self.close()
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         """
@@ -241,6 +222,27 @@ class TransparentFullscreenWindow(QDialog):
 
         # Draw a rectangle that covers all screens
         qp.drawRect(0, 0, total_width, total_height)
+
+    # ============== #
+    # Private method #
+    # ============== #
+
+    def _hotkey_pressed(self, event: utils.KeyboardEvent) -> None:
+        """
+        This method is called when any keyboard shortcut is pressed.
+
+        :param event: The QKeyEvent received.
+        :type event: QKeyEvent
+        """
+
+        # Retrieve the event's hotkey string.
+        event_hotkey = utils.handle_hotkey(event)
+
+        # If the event hotkey is not a handled transformer,
+        # update the shortcut and close the QPushButtonShortcut.
+        if not event_hotkey.endswith('+'):
+            self._shortcut = event_hotkey
+            QMetaObject.invokeMethod(self, typing.cast(bytes, "close"), Qt.ConnectionType.QueuedConnection)
 
     # ============= #
     # Getter method #

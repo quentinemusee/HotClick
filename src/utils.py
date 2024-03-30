@@ -40,10 +40,6 @@ import json
 # Retrieve and declare the binary directory path.
 PATH: Path = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
 
-PSD_KB: Dict[str, str] = {
-    "esc": "ESCAPE"
-}
-
 # =---------------------------------------------------------------------------------------------------------= #
 
 
@@ -116,7 +112,7 @@ def opposite_hex_color(hex_color: str) -> str:
 
 
 # =------------------------= #
-# Is Valid Shortcut function #
+# Is valid Shortcut function #
 # =------------------------= #
 
 def is_valid_shortcut(shortcut: str) -> bool:
@@ -151,9 +147,40 @@ def is_valid_shortcut(shortcut: str) -> bool:
 # =-------------------------------------------------= #
 
 
-# =-------------= #
-# Unhook function #
-# =-------------= #
+# =----------------= #
+# Keyboard functions #
+# =----------------= #
+
+def handle_hotkey(event: KeyboardEvent) -> str:
+    """
+    Handle the given hotkey event, adding
+    the ctrl, maj and alt optional transformers.
+    Return the handled hotkey string.
+
+    :param event: The QMouseEvent received.
+    :type event: KeyboardEvent
+    """
+
+    # Retrieve the event's hotkey string value.
+    event_hotkey: str = event.name.lower()
+
+    # If the event_hotkey is a handled
+    # transformer, use an empty string instead.
+    if event_hotkey in ["ctrl", "maj", "alt"]:
+        event_hotkey = ""
+
+    # Compute the base hotkey.&
+    base: str = ""
+    if keyboard.is_pressed("ctrl"):
+        base += "ctrl+"
+    if keyboard.is_pressed("maj"):
+        base += "maj+"
+    if keyboard.is_pressed("alt"):
+        base += "alt+"
+
+    # Return the event hotkey with its base.
+    return base + event_hotkey
+
 
 def unhook(hook: Callable[..., Any]) -> None:
     """
@@ -167,6 +194,8 @@ def unhook(hook: Callable[..., Any]) -> None:
     try:
         # Call the keyboard's unhook method.
         keyboard.unhook(hook)
+    except KeyError:
+        pass
     except Exception as e:
         logger.critical(str(e))
 
