@@ -25,8 +25,11 @@
     |  0.4.0  |      2024-03-17 | Adapt the code to work with the main.py |
     |         |                 | file being within the src directory.    |
     |---------|-----------------|-----------------------------------------|
-    |  0.5.0  |      2024-03-21 | Adapt the code to work with the igm     |
+    |  0.5.0  |      2024-03-21 | Adapt the code to work with the img     |
     |         |                 | directory being created.                |
+    |---------|-----------------|-----------------------------------------|
+    |  0.5.0  |      2024-03-21 | Remove the color_selection image and    |
+    |  0.5.0  |      2024-03-21 | add the theme.json file                 |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -134,9 +137,9 @@ def zip_binary() -> None:
         print("    -Zipping img/icon.png")
         zip_object.write("img/icon.png", compress_type=zipfile.ZIP_DEFLATED)
 
-        # Add the "img/color_selection.png" file to the zip file.
-        print("    -Zipping img/color_selection.png")
-        zip_object.write("img/color_selection.png", compress_type=zipfile.ZIP_DEFLATED)
+        # Add the "theme.json" file to the zip file.
+        print("    -Zipping theme.json")
+        zip_object.write("theme.json", compress_type=zipfile.ZIP_DEFLATED)
 
         # Add the "README.md" file to the zip file.
         print("    -Zipping README.md")

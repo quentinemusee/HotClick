@@ -29,7 +29,7 @@ import typing
 
 
 # =------------------= #
-# SettingsDialog class #
+# YesNoCancelEnum enum #
 # =------------------= #
 
 class YesNoCancelEnum(Enum):
@@ -56,18 +56,25 @@ class YesNoCancelDialog(QDialog):
     # Initializer method #
     # ================== #
 
-    def __init__(self, title: str, text: str, parent: typing.Optional[QWidget] = None) -> None:
+    def __init__(
+            self,
+            title: str,
+            text: str,
+            no_cancel_button: bool = False,
+            parent: typing.Optional[QWidget] = None
+    ) -> None:
         """
         Initializer method.
         If parent is provided, set such a parent to the YesNoCancelDialog.
 
         :param str title: The title of the YesNoCancelDialog.
         :param str text: The text of the YesNoCancelDialog.
+        :param bool no_cancel_button:: If True, don't add a cancel button.
         :param parent: The optional parent of the YesNoCancelDialog to instantiate. By default, None.
         :type parent: QWidget or None
         """
 
-        # Calling the super class's initializer method.
+        # Call the super class's initializer method.
         super().__init__(parent)
 
         # Initialize the straight-forward attribute.
@@ -77,13 +84,19 @@ class YesNoCancelDialog(QDialog):
         self.setWindowTitle(title)
 
         # Set the Button Box.
-        self.buttonBox = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.No |
+        if not no_cancel_button:
+            self.buttonBox = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.No |
                 QDialogButtonBox.StandardButton.Cancel
-        )
+            )
+        else:
+            self.buttonBox = QDialogButtonBox(
+                QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.No
+            )
         self.buttonBox.accepted.connect(self.yes)
         self.buttonBox.button(QDialogButtonBox.StandardButton.No).clicked.connect(self.no)
-        self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(self.cancel)
+        if not no_cancel_button:
+            self.buttonBox.button(QDialogButtonBox.StandardButton.Cancel).clicked.connect(self.cancel)
 
         # Set the QDialog's layout Label text.
         self.layout = QVBoxLayout()

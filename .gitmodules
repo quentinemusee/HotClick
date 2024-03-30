@@ -1,0 +1,3 @@
+[submodule "src/UtilityWidgets/QConfigList"]
+	path = src/UtilityWidgets/QConfigList
+	url = https://github.com/quentinemusee/QConfigList

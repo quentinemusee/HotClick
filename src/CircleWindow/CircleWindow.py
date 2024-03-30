@@ -16,16 +16,18 @@
 # Libraries import #
 # =--------------= #
 
+from src.config        import CONFIG
 from PySide6.QtCore    import Qt, QPoint, QRect, QSize
 from PySide6.QtGui     import QColor, QFont, QPainter, QMouseEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import QSizeGrip, QWidget
 import typing
-import logger
+import src.logger          as logger
 import keyboard
 import string
-import utils
+import src.config          as config
+import src.utils           as utils
 
-# =----------------------------------------------------------------------------------------------= #
+# =---------------------------------------------------------------------------------------= #
 
 
 # =--------------------------------------------------= #
@@ -81,7 +83,7 @@ class CircleWindow(QWidget):
         :type size: QSize or None
         """
 
-        # Calling the super class's initializer method.
+        # Call the super class's initializer method.
         super().__init__()
 
         # Initialize the straight-forward attributes.
@@ -203,10 +205,15 @@ class CircleWindow(QWidget):
         # Update also the MainWindow's config dictionary.
         elif event.button() == Qt.MiddleButton:
             self.close()
-            getattr(self.__virtual_parent, "remove_circle_window")(self)
+            self.deleteLater()
+            getattr(self.__virtual_parent, "circle_windows").remove(self)
+            utils.update_dict(CONFIG, "hotkeys", self.__hotkey.lower(), delete=True)
 
             # Trace.
             logger.info(f"Delete the hotkey \"{self.__hotkey.upper()}\"")
+
+        # Continue propagating the MousePressEvent.
+        super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent):
         """
@@ -216,12 +223,29 @@ class CircleWindow(QWidget):
         :param PySide6.QtGui.QMouseEvent event: The QMouseEvent received.
         """
 
-        # If the event is a left click, update the MainWindow's config dictionary.
+        # If the event is a left click, update the CONFIG dictionary.
         if event.button() == Qt.LeftButton:
-            getattr(self.__virtual_parent, "update_circle_window")(self)
+
+            # Call the utils.update_dict method twice with the corresponding arguments.
+            utils.update_dict(CONFIG, "last_position", value=[self.position.x(), self.position.y()])
+            utils.update_dict(
+                CONFIG,
+                "hotkeys",
+                self.hotkey.lower(),
+                value={
+                    "type": "Click",
+                    'x': self.position.x(),
+                    'y': self.position.y(),
+                    'w': self.size.width(),
+                    'h': self.size.height()
+                }
+            )
 
             # Trace.
             logger.info(f"Move the hotkey \"{self.__hotkey.upper()}\" to ({self.pos().x()};{self.pos().y()})")
+
+        # Continue propagating the MousePressEvent.
+        super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event: QMouseEvent):
         """
@@ -242,6 +266,9 @@ class CircleWindow(QWidget):
             delta: QPoint = QPoint(tmp - self.__old_position)
             self.move(int(self.x() + delta.x()), int(self.y() + delta.y()))
             self.__old_position = tmp
+
+        # Continue propagating the MousePressEvent.
+        super().mousePressEvent(event)
 
     def resizeEvent(self, event: QResizeEvent):
         """
@@ -304,8 +331,21 @@ class CircleWindow(QWidget):
             self.__input_hotkeys = []
             self.update()
 
-            # Update the MainWindow's config dictionary.
-            getattr(self.__virtual_parent, "edit_circle_window")(self, previous_hotkey)
+            # Update the CONFIG dictionary by calling the utils.update_dict
+            # method twice with the corresponding arguments.
+            utils.update_dict(CONFIG, "hotkeys", previous_hotkey.lower(), delete=True)
+            utils.update_dict(
+                CONFIG,
+                "hotkeys",
+                self.hotkey.lower(),
+                value={
+                    "type": "Click",
+                    'x': self.position.x(),
+                    'y': self.position.y(),
+                    'w': self.size.width(),
+                    'h': self.size.height()
+                }
+            )
 
             # Trace.
             logger.info(f"Hotkey edited to \"{self.__hotkey.upper()}\"")

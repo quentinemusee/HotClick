@@ -1,0 +1,28 @@
+{
+    "color": "#ffe7e7",
+    "background-color": "#367582",
+    "font-family": "Titillium Web",
+    "QPushButton": {
+        "background-color": "#0c8ecb"
+    },
+    "QPushButton:checked": {
+        "background-color": "#64826d"
+    },
+    "QPushButton:pressed": {
+        "background-color": "#4b3d82"
+    },
+    "QPushButton:disabled": {
+        "background-color": "#333333"
+    },
+    "QPushButton:hover": {
+        "border-color": "#4488BB"
+    },
+    "QStatusBar": {
+        "background-color": "#18529a"
+    },
+    "Custom": {
+        "middleground-color": "#106c94",
+        "invalid-color": "#FF0000",
+        "selected-background-color": "#087e06"
+    }
+}

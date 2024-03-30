@@ -16,22 +16,26 @@
 # Libraries import #
 # =--------------= #
 
-from imain_window      import IMainWindow
-from circle_window     import CircleWindow
-from settings_dialog   import SettingsDialog
-from PySide6.QtCore    import QPoint, QSize
-from PySide6.QtGui     import QCursor
-from PySide6.QtWidgets import QFileDialog, QSystemTrayIcon
-from pynput.mouse      import Button, Controller
-from pathlib           import Path
-from utils             import PATH
+from typing             import Any, Callable, Dict
+from .IMainWindow       import IMainWindow
+from src.SettingsDialog import SettingsDialog
+from src.CircleWindow   import CircleWindow
+from src.config         import CONFIG
+from PySide6.QtCore     import QPoint, QSize
+from PySide6.QtGui      import QCursor, QKeySequence, QShortcut
+from PySide6.QtWidgets  import QFileDialog, QSystemTrayIcon
+from pynput.mouse       import Button, Controller
+from pathlib            import Path
+from src.config         import CONFIG_FILE
+from src.utils          import PATH
 import typing
-import logger
+import src.logger           as logger
 import time
 import keyboard
-import utils
+import src.config           as config
+import src.utils            as utils
 
-# =-----------------------------------------------------------= #
+# =---------------------------------------------------------= #
 
 
 # =--------------------------------------------------= #
@@ -67,26 +71,35 @@ class MainWindow(IMainWindow):
     def __init__(self) -> None:
         """Initializer method."""
 
-        # Calling the super class's initializer method.
+        # Call the super class's initializer method.
         super().__init__()
 
         # Connect the different widgets to the corresponding callback methods.
         self._menu_bar.set_menu_callbacks(
-            self.__file_new_callback,
-            self.__file_open_callback,
-            self.__file_save_as_callback,
-            self.__settings_callback
+            self._file_new_callback,
+            self._file_open_callback,
+            self._file_save_as_callback,
+            self._settings_callback
         )
-        self._hotkeys_radius_slider.valueChanged.connect(self.__slider_value_change)
-        self._new_hotkey_button.clicked.connect(self.__new_hotkey)
-        self._start_button.clicked.connect(self.__start)
-        self._tray_icon.activated.connect(self.__tray_icon_activated)
+        self._hotkeys_radius_slider.valueChanged.connect(self._slider_value_change)
+        self._new_hotkey_button.clicked.connect(self._new_hotkey)
+        self._start_button.clicked.connect(self._start)
+        self._tray_icon.activated.connect(self._tray_icon_activated)
 
         # Initialize and associate the logger to this window.
         logger.init_logger(self._status_bar)
 
         # Look for a config file to load.
         self._init_load_config()
+
+        # Load the theme file.
+        config.load_style()
+
+        # Initialize the UI style.
+        self.set_stylesheets()
+
+        # Set the software builtin shortcuts.
+        self.update_builtin_shortcuts()
 
         # Display a successful message on the StatusBar if the init_error_message
         # attribute is None, otherwise display such an error message.
@@ -95,19 +108,48 @@ class MainWindow(IMainWindow):
         else:
             logger.error(self._init_error_message)
 
+    # ============== #
+    # Public methods #
+    # ============== #
+
+    def update_builtin_shortcuts(self) -> None:
+        """Update the builtin shortcuts used by the software."""
+
+        # Update the builtin shortcuts reading their
+        # current value from the CONFIG dictionary.
+        for action in CONFIG["shortcuts"]["builtin"]:
+            if action in self._builtin_shortcuts:
+                self._builtin_shortcuts[action].setEnabled(False)
+            # Actually, it's not ~that~ dynamic, the
+            # following part remains hardcoded.
+            tmp: Dict[str, Callable[..., Any]] = {
+                "New": self._file_new_callback,
+                "Open": self._file_open_callback,
+                "Save As...": self._file_save_as_callback,
+                "Settings": self._settings_callback,
+                "New Hotkey": self._new_hotkey,
+                "Start": self._start
+            }
+            if action in tmp:
+                self._builtin_shortcuts[action]: QShortcut = QShortcut(
+                    QKeySequence(CONFIG["shortcuts"]["builtin"][action]),
+                    self
+                )
+                self._builtin_shortcuts[action].activated.connect(tmp[action])
+
     # =============== #
     # Private methods #
     # =============== #
 
-    def __new_hotkey(self) -> None:
+    def _new_hotkey(self) -> None:
         """Create a new instance of CircleWindow."""
 
         # Instantiate a new CircleWindow.
         circle_window: CircleWindow = CircleWindow(
             self,
-            position=QPoint(self._config["last_position"][0], self._config["last_position"][1]) if
-                self._config["last_position"] is not None else None,
-            size=QSize(self._config["radius"], self._config["radius"])
+            position=QPoint(CONFIG["last_position"][0], CONFIG["last_position"][1]) if
+            CONFIG["last_position"] is not None else None,
+            size=QSize(CONFIG["radius"], CONFIG["radius"])
         )
 
         # Show it.
@@ -119,7 +161,7 @@ class MainWindow(IMainWindow):
         # Add it to the config dictionary.
         circle_window_position: QPoint = circle_window.position
         circle_window_size: QSize = circle_window.size
-        self._config["hotkeys"][circle_window.hotkey.lower()] = {
+        CONFIG["hotkeys"][circle_window.hotkey.lower()] = {
             "type": "Click",
             'x': circle_window_position.x(),
             'y': circle_window_position.y(),
@@ -127,27 +169,26 @@ class MainWindow(IMainWindow):
             'h': circle_window_size.height(),
         }
 
-    def __slider_value_change(self) -> None:
+    def _slider_value_change(self) -> None:
         """Callback function when the hotkey size slider is updated."""
 
         # Update the size attribute.
-        self._config["radius"] = int(self._hotkeys_radius_slider.value())
-        self._hotkeys_radius_label.setText(f"""Hotkeys default radius: {self._config["radius"]}""")
+        CONFIG["radius"] = int(self._hotkeys_radius_slider.value())
+        self._hotkeys_radius_label.setText(f"""Hotkeys default radius: {CONFIG["radius"]}""")
         self._hotkeys_radius_label.adjustSize()
 
         # Save the config.
-        self._write_save()
+        config.save_config()
 
         # Trace.
-        logger.info(f"""Hotkeys default radius: {self._config["radius"]}""")
+        logger.info(f"""Hotkeys default radius: {CONFIG["radius"]}""")
 
-    def __start(self) -> None:
+    def _start(self) -> None:
         """Close every instance of CircleWindow and start the hotkey program."""
 
         # Ensure no CircleWindow has no associated hotkey
         # before to start the main hotkeys routine.
         if "" in self.hotkeys:
-            print(self.hotkeys)
             logger.warning("Some hotkeys are not assigned!")
             return
 
@@ -155,7 +196,7 @@ class MainWindow(IMainWindow):
         self._reset_circle_windows()
 
         # Save the config.
-        self._write_save()
+        config.save_config()
 
         # Set the MainWindow instance visible on the tray.
         self._tray_icon.setVisible(True)
@@ -164,12 +205,12 @@ class MainWindow(IMainWindow):
         self.hide()
 
         # Launch the main hotkey routine.
-        self._hook: typing.Callable[..., None] = keyboard.on_press(self.__hotkey_routine)
+        self._hook: typing.Callable[..., None] = keyboard.on_press(self._hotkey_routine)
 
         # Trace.
         logger.info("Program started")
 
-    def __tray_icon_activated(self, reason: int) -> None:
+    def _tray_icon_activated(self, reason: int) -> None:
         """
         Callback method when the tray icon get activated through any mouse click.
 
@@ -188,7 +229,7 @@ class MainWindow(IMainWindow):
             utils.unhook(self._hook)
 
             # Restore the CircleWindow by reloading the config file.
-            self._load_save()
+            self._load_config()
 
             # Display a successful message on the StatusBar.
             logger.info("HotClick successfully restored!")
@@ -196,9 +237,9 @@ class MainWindow(IMainWindow):
         # Otherwise, if the application got right-clicked, show the tray context menu with the exit button.
         elif reason == QSystemTrayIcon.ActivationReason.Context:
             pos = QCursor.pos()
-            self._tray_menu.exec_(QPoint(pos.x(), pos.y() - 30))
+            self._tray_menu.exec(QPoint(pos.x(), pos.y() - 30))
 
-    def __hotkey_routine(self, event: utils.KeyboardEvent):
+    def _hotkey_routine(self, event: utils.KeyboardEvent):
         """
         un the hotkey routine for clicking on the previously creates CircleWindow instances.
 
@@ -207,21 +248,7 @@ class MainWindow(IMainWindow):
         """
 
         # Retrieve the event's hotkey string value.
-        event_hotkey: str = event.name.lower()
-
-        # If the event hotkey is "right shift", update the disable_hotkeys and return here.
-        if event_hotkey == "right shift":
-            self._disable_hotkeys = not self._disable_hotkeys
-            return
-
-        # If the disable_hotkeys is True, return.
-        if self._disable_hotkeys:
-            return
-
-        # If the event hotkey is "esc", simulate a right click and return here.
-        if event_hotkey == "esc":
-            MOUSE.click(Button.right)
-            return
+        original_event_hotkey: str = event.name.lower()
 
         # Compute the base hotkey.
         base: str = ""
@@ -233,20 +260,29 @@ class MainWindow(IMainWindow):
             base += "alt+"
 
         # Update the event_hotkey.
-        event_hotkey = base + event_hotkey
+        event_hotkey = base + original_event_hotkey
+
+        # If the event hotkey is the "Disable Hotkeys" shortcut,
+        # update the disable_hotkeys attribute and return.
+        if event_hotkey.upper() == CONFIG["shortcuts"]["builtin"]["Disable Hotkeys"]:
+            self._disable_hotkeys = not self._disable_hotkeys
+            return
+
+        # If the disable_hotkeys is True, return.
+        if self._disable_hotkeys:
+            return
 
         # If the event_hotkey match a previously defined CircleWindow's position, click it.
-        if event_hotkey in self._config["hotkeys"]:
+        if event_hotkey in CONFIG["hotkeys"]:
             # Get the current mouse position before clicking.
             original_position = MOUSE.position
 
-            # Move the mouse to the location to click on.
-            MOUSE.position = (
-                self._config["hotkeys"][event_hotkey]['x'],
-                self._config["hotkeys"][event_hotkey]['y']
-            )
-
-            time.sleep(0.02)
+            while keyboard.is_pressed(original_event_hotkey):
+                # Move the mouse to the location to click on.
+                MOUSE.position = (
+                    CONFIG["hotkeys"][event_hotkey]['x'],
+                    CONFIG["hotkeys"][event_hotkey]['y']
+                )
 
             # Simulate a Left Click.
             MOUSE.click(Button.left)
@@ -256,37 +292,44 @@ class MainWindow(IMainWindow):
 
             # Trace.
             logger.info(f"Hotkey {event_hotkey} pressed")
+        # Otherwise, if the event_hotkey match a custom shortcut, execute it.
+        elif event_hotkey in utils.PSD_KB and utils.PSD_KB[event_hotkey] in CONFIG["shortcuts"]["custom"]:
+            bind_to: str = CONFIG["shortcuts"]["custom"][utils.PSD_KB[event_hotkey]]
+            if bind_to == "LeftButton":
+                MOUSE.click(Button.left)
+            elif bind_to == "RightButton":
+                MOUSE.click(Button.right)
 
     # ======================== #
     # MenuBar callback methods #
     # ======================== #
 
-    def __file_new_callback(self) -> None:
+    def _file_new_callback(self) -> None:
         """Callback function when the "File -> New" button get clicked."""
 
         # Save the config.
-        self._write_save()
+        config.save_config()
 
         # Close and remove every element from the circle windows list.
         self._reset_circle_windows()
 
-        # Reset the config dictionary.
+        # Reset, save and load the config dictionary.
         self._reset_config()
 
         # Use a config file called configX.json, X being the last number available.
-        self._config_file = utils.next_config_file_name_available(PATH)
+        CONFIG_FILE[0] = utils.next_config_file_name_available(PATH / Path("configs"))
 
         # Create such an empty config file via saving the new config.
-        self._write_save()
+        config.save_config()
 
-        # Update the StyleSheets.
-        self._set_stylesheets()
+        # Trace.
+        logger.info(f"New config file \"{CONFIG_FILE[0].name}\" created!")
 
-    def __file_open_callback(self) -> None:
+    def _file_open_callback(self) -> None:
         """Callback function when the "File -> Open" button get clicked."""
 
         # Save the config.
-        self._write_save()
+        config.save_config()
 
         # Open a QFileDialog to select the config file to open.
         file_path: str
@@ -298,17 +341,20 @@ class MainWindow(IMainWindow):
             return
 
         # Open and use the selected config file.
-        self._config_file = Path(file_path)
-        self._load_save()
+        CONFIG_FILE[0] = Path(file_path)
+        self._load_config()
 
-        # Update the StyleSheets.
-        self._set_stylesheets()
+        # Trace.
+        logger.info(f"Config file \"{CONFIG_FILE[0].name}\" loaded!")
 
-    def __file_save_as_callback(self) -> None:
+    def _file_save_as_callback(self) -> None:
         """Callback function when the "File -> Save As" button get clicked."""
 
         # Save the config.
-        self._write_save()
+        config.save_config()
+
+        # Create a temporary variable for holding the current config_file value.
+        old_config_file: Path = CONFIG_FILE[0]
 
         # Open a QFileDialog to select the config file to open.
         file_path: str
@@ -320,26 +366,40 @@ class MainWindow(IMainWindow):
             return
 
         # Open and save the selected config file.
-        self._config_file = Path(file_path)
-        self._write_save()
+        CONFIG_FILE[0] = Path(file_path)
+        config.save_config()
 
-    def __settings_callback(self) -> None:
+        # Trace.
+        logger.info(f"Config file \"{old_config_file.name}\" saved as \"{CONFIG_FILE[0].name}\"!")
+
+    def _settings_callback(self) -> None:
         """Callback function when the "Settings" button get clicked."""
 
         # Execute the SettingsDialog menu.
-        setting_dialog: SettingsDialog = SettingsDialog(
-            self._config["last_setting_menu"],
-            self._config.copy()["style"],
-            self
-        )
-        setting_dialog.exec()
+        self._settings_dialog = SettingsDialog(self)
+        self._settings_dialog.open()
 
-        # Update the last_setting_menu in the config.
-        self._update_config("last_setting_menu", value=setting_dialog.menu)
+    # =================== #
+    # Stylesheets methods #
+    # =================== #
 
-        # Update the settings if required.
-        if setting_dialog.settings_changed:
-            self._update_config("style", value=setting_dialog.style)
-            self._set_stylesheets()
+    def set_stylesheets(self) -> None:
+        """Call every set_stylesheet method."""
+
+        # Set the MainWindow StyleSheets.
+        self._set_main_window_stylesheet()
+        self._set_hotkeys_menu_stylesheet()
+        self._set_new_hotkey_button_stylesheet()
+        self._set_hotkeys_radius_label_stylesheet()
+        self._set_hotkeys_radius_slider_stylesheet()
+        self._set_start_button_stylesheet()
+        self._set_status_bar_stylesheet()
+
+        # Set the SettingsDialog Stylesheets.
+        if self._settings_dialog is not None:
+            self._settings_dialog.set_stylesheets()
+
+        # Set the CircleWindow Stylesheets.
+        # ...
 
 # =---------------------------------------------------------------------------------------------------------------= #

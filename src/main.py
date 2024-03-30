@@ -33,9 +33,9 @@
     |         |                 | Migrated the logger content to a        |
     |         |                 | logger.py dedicated file.               |
     |         |                 | Migrated the CircleWindow content to a  |
-    |         |                 | circle_window.py dedicated file.        |
+    |         |                 | CircleWindow.py dedicated file.        |
     |         |                 | Migrated the MainWindow content to a    |
-    |         |                 | main_window.py dedicated file.          |
+    |         |                 | MainWindow.py dedicated file.          |
     |---------|-----------------|-----------------------------------------|
     |  0.4.0  |      2024-03-17 | Improve the relative path config file   |
     |         |                 | parsing mechanism.                      |
@@ -72,16 +72,18 @@
     |  0.7.0  |      2024-03-23 | Refactor the directory structure of the |
     |         |                 | project, creating a directory per       |
     |         |                 | section to make it way more readable.   |
-    |         |                 | Introduce the QConfigList widget        |
+    |         |                 | Introduce the QConfigList widget.       |
     |         |                 | Introduce the QPushButtonShortcut       |
     |         |                 | widget.                                 |
     |         |                 | Add a garbage mechanism to delete       |
     |         |                 | unused widgets anymore.                 |
-    |         |                 |                                         |
+    |         |                 | Hotkeys's click stops when the hotkey   |
+    |         |                 | is released.                            |
+    |         |                 | Biggest refactor ever done.             |
     |         |                 | Fix the style settings being applied    |
     |         |                 | even when clicking on "No" to the       |
     |         |                 | YesNoCancelDialog.                      |
-     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+    |---------|-----------------|-----------------------------------------|
 """
 
 
@@ -89,7 +91,7 @@
 # Libraries import #
 # =--------------= #
 
-from main_window       import MainWindow
+from src.MainWindow    import MainWindow
 from PySide6.QtWidgets import QApplication
 import os
 import sys
@@ -108,10 +110,7 @@ __license__      = "LGPL-2.1"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Development"
 __todo__         = [
-    "Add a hotkey mapping mechanism",
     "Make the hotkeys label fit their CircleWindow",
-    "Click as long as the hotkey is pressed",
-    "Refactor the whole code to ensure 'parent' is correctly set.",
     "Remove use of '__' for attribute: this is definitely a bad practice."
 ]
 __version__      = "0.7.0"
