@@ -88,6 +88,8 @@ class KeyboardThread(QThread):
 
         # Enter a loop waiting for a
         # new valid hotkey to be pressed
+        if hasattr(parent, "clear_last_hotkey"):
+            parent.clear_last_hotkey()
         if hasattr(parent, "last_hotkey"):
             current_hotkey: Optional[str] = parent.last_hotkey
             while current_hotkey == parent.last_hotkey:

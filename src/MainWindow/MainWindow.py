@@ -327,21 +327,30 @@ class MainWindow(IMainWindow):
             # Get the current mouse position before clicking.
             original_position = MOUSE.position
 
+            # Initialize a flag for pressing the
+            # left mouse button only is the key
+            # is pressed during this callback iteration.
+            flag: bool = False
+
             while keyboard.is_pressed(original_event_hotkey):
+                # Update the flag variable.
+                flag = True
+
                 # Move the mouse to the location to click on.
                 MOUSE.position = (
                     CONFIG["hotkeys"][event_hotkey]['x']-int(CONFIG["hotkeys"][event_hotkey]['w']/2),
                     CONFIG["hotkeys"][event_hotkey]['y']-int(CONFIG["hotkeys"][event_hotkey]['h']/2)
                 )
 
-            # Simulate a Left Click.
-            MOUSE.click(Button.left)
+            # Simulate a Left Click if flag is True.
+            if flag:
+                MOUSE.click(Button.left)
 
-            # Move the mouse back to its original position.
-            MOUSE.position = original_position
+                # Move the mouse back to its original position.
+                MOUSE.position = original_position
 
-            # Trace.
-            logger.info(f"Hotkey {event_hotkey} pressed")
+                # Trace.
+                logger.info(f"Hotkey {event_hotkey} pressed")
         # Otherwise, if the event_hotkey match a custom shortcut, execute it.
         elif event_hotkey in CONFIG["shortcuts"]["custom"]:
             bind_to: str = CONFIG["shortcuts"]["custom"][event_hotkey]

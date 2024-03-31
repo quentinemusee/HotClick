@@ -121,6 +121,13 @@
     |  0.8.1  |      2024-03-31 | Fix the unsafe integration of the       |
     |         |                 | keyboard library in the                 |
     |         |                 | QPushButtonShortcut file.               |
+    |---------|-----------------|-----------------------------------------|
+    |  0.8.2  |      2024-03-31 | Fix the QPushButtonShortcut's           |
+    |         |                 | KeyboardThread not being able to handle |
+    |         |                 | the same hotkey as lastly entered.      |
+    |         |                 | Fix the hotkeys clicks event being      |
+    |         |                 | stacked when pressing a hotkey          |
+    |         |                 | continuously.                           |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -151,7 +158,7 @@ __todo__         = [
     "Make the hotkeys label fit their CircleWindow",
     "Remove use of '__' for attribute: this is definitely a bad practice."
 ]
-__version__      = "0.8.1"
+__version__      = "0.8.2"
 
 # =--------------------------------------------------------------------= #
 

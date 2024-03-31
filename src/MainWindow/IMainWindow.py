@@ -369,6 +369,10 @@ class IMainWindow(QMainWindow):
     # Attributes manipulation methods #
     # =============================== #
 
+    def clear_last_hotkey(self) -> None:
+        """Set the last_hotkey attribute to None."""
+        self._last_hotkey = None
+
     def _reset_circle_windows(self) -> None:
         """
         Reset the CircleWindows by closing them
