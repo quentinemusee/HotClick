@@ -117,6 +117,10 @@
     |         |                 | CircleWindows.                          |
     |         |                 | Fix the builtin shortcuts handling      |
     |         |                 | mouse clicks shortcuts binding.         |
+    |---------|-----------------|-----------------------------------------|
+    |  0.8.1  |      2024-03-31 | Fix the unsafe integration of the       |
+    |         |                 | keyboard library in the                 |
+    |         |                 | QPushButtonShortcut file.               |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -147,7 +151,7 @@ __todo__         = [
     "Make the hotkeys label fit their CircleWindow",
     "Remove use of '__' for attribute: this is definitely a bad practice."
 ]
-__version__      = "0.8.0"
+__version__      = "0.8.1"
 
 # =--------------------------------------------------------------------= #
 

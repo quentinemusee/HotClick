@@ -3,39 +3,28 @@
 
 
 """
-    QPushButtonShortcut is a single-file PySide6 custom QWidget
-    class representing a QPushButton whose text get modifier
-    when clicked, and wait for a shortcut to be entered.
-    These shortcuts can be any combinations of keys with the
-    "SHIFT", "CTRL" and "ALT" modifiers, as well as mouse buttons.
-    When a QPushButtonShortcut get clicked, a TransparentFullscreenWindow
-    instance is created, filling every screen and indication that
-    a shortcut is waiting to be input. This TransparentFullscreenWindow
-    handle any keyboard and mouse events.
-    This file also contains the TransparentFullscreenWindow class
-    that is used when clicking the QPushButtonShortcut for handling
-    any click on the different screens of the user.
+    This file contains everything related to the
+    QPushButtonShortcut class used by the HotClick software.
+    The QPushButtonShortcut class has been thinking to be a
+    standalone custom QWidget, but now it has a dependency to
+    the rest of the HotClick software.
 
-     _____________________________________________________________________
-    | VERSION | DATE YYYY-MM-DD |                 CONTENT                 |
-    |=====================================================================|
-    |  1.0.0  |      2024-03-23 | Initial and fully functional commit.    |
-     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
+     ____________________________________________________
+    | REFER TO THE MAIN.PY FILE FOR THE CHANGE DOC TABLE |
+     ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
 # =--------------= #
 # Libraries import #
 # =--------------= #
 
-from typing            import Callable, Optional, Type, Union
-from PySide6.QtCore    import Qt, QEvent, QMetaObject
-from PySide6.QtGui     import QCloseEvent, QColor, QFont, QIcon, QKeyEvent, QPainter, QPaintEvent, QPixmap, QMouseEvent
+from typing            import Optional, Type, Union
+from PySide6.QtCore    import Qt, QEvent, QThread, Signal
+from PySide6.QtGui     import QColor, QFont, QIcon, QPainter, QPaintEvent, QPixmap, QMouseEvent
 from PySide6.QtWidgets import QApplication, QDialog, QPushButton, QWidget
-import typing
-import keyboard
-import src.utils           as utils
+import time
 
-# =-----------------------------------------------------------------------------------------------------------------= #
+# =-----------------------------------------------------------------------------------------= #
 
 
 # =--------= #
@@ -53,17 +42,93 @@ __version__      = "1.0.0"
 # =-------------------------------------------------= #
 
 
-# =-------------------------------= #
-# TransparentFullscreenWindow class #
-# =-------------------------------= #
+# =------------------= #
+# KeyboardThread class #
+# =------------------= #
 
-class TransparentFullscreenWindow(QDialog):
+class KeyboardThread(QThread):
+    """
+    KeyboardThread QThread used for handling a
+    hotkey from a different thread than the one
+    used by the Qt main loop, allowing to use
+    the keyboard python library thread-safely.
+    """
+
+    # Declare the signal to send
+    # once a hotkey is pressed;
+    key_pressed = Signal(str)
 
     # =================== #
     # Initializer methods #
     # =================== #
 
-    def __init__(self, _allow_mouse_buttons: bool = False) -> None:
+    def __init__(self, parent: QWidget) -> None:
+        """Initializer method."""
+
+        # Call the super class's initializer method.
+        super().__init__(parent)
+
+        # Set the straight-forward attribute.
+        self._stop_requested: bool = False
+
+    # ================= #
+    # Overridden method #
+    # ================= #
+
+    def run(self) -> None:
+        """
+        Overridden run method.
+        This method is called when the KeyboardThread starts.
+        """
+
+        # Retrieve the MainWindow widget.
+        parent: Optional[QWidget] = self.parent().virtual_parent
+        while parent.parent() is not None:
+            parent = parent.parent()
+
+        # Enter a loop waiting for a
+        # new valid hotkey to be pressed
+        if hasattr(parent, "last_hotkey"):
+            current_hotkey: Optional[str] = parent.last_hotkey
+            while current_hotkey == parent.last_hotkey:
+                # If stop_requested is True, return.
+                if self._stop_requested:
+                    return
+                time.sleep(0.01)
+
+            # Emit such a new valid hotkey to
+            # the TransparentFullscreenWindow parent.
+            self.key_pressed.emit(parent.last_hotkey)
+
+        # No more code to use, the
+        # KeyboardThread stops.
+
+    # ============== #
+    # Private method #
+    # ============== #
+
+    def stop(self) -> None:
+        """Update the stop_requested to True."""
+        self._stop_requested = True
+
+# =----------------------------------------------------------= #
+
+
+# =-------------------------------= #
+# TransparentFullscreenWindow class #
+# =-------------------------------= #
+
+class TransparentFullscreenWindow(QDialog):
+    """
+    TransparentFullScreenWindow Dialog used for
+    handling a hotkey from a QPushButtonShortcut.
+    """
+
+    # =================== #
+    # Initializer methods #
+    # =================== #
+
+    def __init__(self, _allow_mouse_buttons: bool = False, parent: QWidget = None) -> None:
         """Initializer method."""
 
         # Call the super class's initializer method.
@@ -71,12 +136,17 @@ class TransparentFullscreenWindow(QDialog):
 
         # Set the straight-forward attributes.
         self._allow_mouse_buttons: bool = _allow_mouse_buttons
-        self._hotkey_routine_hook: Callable[[], None] = keyboard.on_press(self._hotkey_pressed)
+        self._virtual_parent: QWidget = parent
         self._shortcut: str = ""
         self._to_be_closed: bool = False
 
         # Initialize the UI.
         self._init_ui()
+
+        # Initialize the KeyboardThread.
+        self._keyboard_thread: KeyboardThread = KeyboardThread(self)
+        self._keyboard_thread.key_pressed.connect(self._handle_hotkey)
+        self._keyboard_thread.start()
 
     def _init_ui(self) -> None:
         """Initialize the QPushButtonShortcut's UI."""
@@ -98,27 +168,13 @@ class TransparentFullscreenWindow(QDialog):
     # Overridden methods #
     # ================== #
 
-    def closeEvent(self, event: QCloseEvent):
-        """
-        Overridden closeEvent method.
-        This method is called when the QPushButtonShortcut instance get closed.
-
-        :param PySide6.QtGui.QCloseEvent event: The QCloseEvent received.
-        """
-
-        # Unhook the hotkey_routine keyboard callback method.
-        utils.unhook(self._hotkey_routine_hook)
-
-        # Call the super class's closeEvent method.
-        super().closeEvent(event)
-
     def eventFilter(self, watched: QWidget, event: QEvent) -> bool:
 
         # Handle any QEvent.KeyPress event and QEvent.MouseButtonPress
         # events if the allow_mouse_buttons attribute is True.
         event_type: Type = event.type()
         if event_type == QEvent.KeyPress:
-            self.keyPressEvent(event)
+            pass
         elif self._allow_mouse_buttons and event_type in (QEvent.MouseButtonPress, QEvent.MouseButtonDblClick):
             if event_type == QEvent.MouseButtonPress:
                 self.mousePressEvent(event)
@@ -181,6 +237,10 @@ class TransparentFullscreenWindow(QDialog):
         # Handle the click event if the
         # allow_mouse_buttons is True.
         if self._allow_mouse_buttons and self._to_be_closed:
+            # Stop the keyboard thread.
+            self._keyboard_thread.stop()
+            # Wait for it to stop definitely.
+            time.sleep(0.01)
             # Close the window when any mouse button is released.
             self.close()
 
@@ -227,22 +287,18 @@ class TransparentFullscreenWindow(QDialog):
     # Private method #
     # ============== #
 
-    def _hotkey_pressed(self, event: utils.KeyboardEvent) -> None:
+    def _handle_hotkey(self, hotkey: str) -> None:
         """
-        This method is called when any keyboard shortcut is pressed.
+        Handle the provided hotkey, updating the shortcut
+        attribute and closing the TransparentFullscreenWindow.
 
-        :param event: The QKeyEvent received.
-        :type event: QKeyEvent
+        :param hotkey: The hotkey to handle.
+        :type hotkey: str
         """
 
-        # Retrieve the event's hotkey string.
-        event_hotkey = utils.handle_hotkey(event)
-
-        # If the event hotkey is not a handled transformer,
-        # update the shortcut and close the QPushButtonShortcut.
-        if not event_hotkey.endswith('+'):
-            self._shortcut = event_hotkey
-            QMetaObject.invokeMethod(self, typing.cast(bytes, "close"), Qt.ConnectionType.QueuedConnection)
+        # Update the shortcut attribute and close.
+        self._shortcut = hotkey
+        self.close()
 
     # ============= #
     # Getter method #
@@ -257,6 +313,16 @@ class TransparentFullscreenWindow(QDialog):
         :rtype: str
         """
         return self._shortcut
+
+    @property
+    def virtual_parent(self) -> Optional[QWidget]:
+        """
+        Getter method for the virtual_parent attribute.
+
+        :returns: The virtual_parent attribute.
+        :rtype: QWidget or None
+        """
+        return self._virtual_parent
 
 
 # =-----------------------------------------------------------------------------------------------= #
@@ -350,7 +416,8 @@ class QPushButtonShortcut(QPushButton):
         # Create and show the transparent window
         # to handle any keyboard or mouse input.
         transparent_window = TransparentFullscreenWindow(
-            _allow_mouse_buttons=self._allow_mouse_buttons
+            _allow_mouse_buttons=self._allow_mouse_buttons,
+            parent=self
         )
         transparent_window.exec()
 
@@ -406,7 +473,7 @@ class QPushButtonShortcut(QPushButton):
         """
         Setter method for the shortcut attribute.
 
-        :param str new_shortcut: The shortcut to set..
+        :param str new_shortcut: The shortcut to set.
         """
         self._shortcut = new_shortcut
 

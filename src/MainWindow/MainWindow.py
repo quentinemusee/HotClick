@@ -284,6 +284,14 @@ class MainWindow(IMainWindow):
         # Retrieve the event's hotkey string.
         event_hotkey: str = utils.handle_hotkey(event)
 
+        # If the event hokey is only composed
+        # of handled modifiers, return here.
+        if event_hotkey.endswith('+'):
+            return
+
+        # Update the last hotkey attribute.
+        self._last_hotkey = event_hotkey
+
         # If the event hotkey is the "Restore Application" shortcut,
         # even if the HOTKEY_ROUTINE_IS_RUNNING global variable is
         # still False, restore the application from being minimized

@@ -73,6 +73,7 @@ class IMainWindow(QMainWindow):
         self._builtin_shortcuts: Dict[str, QShortcut] = {}
         self._custom_shortcuts: Dict[str, QShortcut] = {}
         self._init_error_message: Optional[str] = None
+        self._last_hotkey: Optional[str] = None
         self._disable_hotkeys: bool = False
 
         # Initialize the UI.
@@ -495,5 +496,15 @@ class IMainWindow(QMainWindow):
         :rtype: List[CircleWindow]
         """
         return self._circle_windows
+
+    @property
+    def last_hotkey(self) -> Optional[str]:
+        """
+        Getter method for the last_hotkey attribute.
+
+        :returns: The last_hotkey attribute.
+        :rtype: Optional[str]
+        """
+        return self._last_hotkey
 
 # =------------------------------------------------------------------------------------------------------------------= #
