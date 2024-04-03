@@ -120,7 +120,8 @@ class KeyMappingWidget(ISettingsContentWidget):
 
     def settings_just_changed(self, *widgets_content: Any) -> None:
         """
-        Set the _settings_changed attribute to True and update the CONFIG dictionary.
+        Set the settings_changed attribute to True and update both
+        the save_button being disabled or not and the CONFIG dictionary.
 
         :param widgets_content: The changed row of widgets from the config_list.
         :type widgets_content: Tuple[QLabel or QPushButtonShortcut, QPushButtonShortcut]

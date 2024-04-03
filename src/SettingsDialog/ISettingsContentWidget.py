@@ -195,13 +195,17 @@ class ISettingsContentWidget(QWidget):
 
     def settings_just_changed(self, *widgets_content: Any) -> None:
         """
-        Set the _settings_changed attribute to True.
+        Set the settings_changed attribute to True and update the save button
+        being disabled or not.
         This method can be overridden to update the CONFIG/STYLE dictionaries
         when the widget changes, by calling this method directly when it happens.
 
         :param widgets_content: The changed row of widgets from the config_list.
         :type widgets_content: Tuple[QLabel or QPushButtonShortcut, QPushButtonShortcut]
         """
+
+        # Update the save button being disabled or not.
+        self._save_button.setEnabled(self._is_valid())
 
         # Update the settings attribute.
         self._settings_changed = True
@@ -219,6 +223,7 @@ class ISettingsContentWidget(QWidget):
             parent=self
         )
         self._save_button.clicked.connect(self._save)
+        self._save_button.setEnabled(self._is_valid())
 
         # Add the save button to the main layout.
         self._main_layout.addWidget(self._save_button, alignment=Qt.AlignBottom | Qt.AlignRight)
@@ -289,6 +294,12 @@ class ISettingsContentWidget(QWidget):
                 background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                                   stop: 0 #3a3a3a, stop: 0.5 #2a2a2a, stop: 1 #3a3a3a);
                 border: 2px solid #2a2a2a;
+            }}
+            
+            QPushButton:disabled {{
+                background-color: #808080;
+                border: 2px solid #606060;
+                color: #a0a0a0;
             }}
         """)
 

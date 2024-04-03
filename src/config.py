@@ -147,11 +147,11 @@ def load_config() -> bool:
             # Ensure every shortcut contains the required values.
             for shortcut in loaded_config["shortcuts"]["builtin"]:
                 logger.info(
-                    f"""Loaded builtin shortcut: [{shortcut}: {loaded_config["shortcuts"]["builtin"][shortcut]}"""
+                    f"""Loaded builtin shortcut: [{shortcut}: {loaded_config["shortcuts"]["builtin"][shortcut]}]"""
                 )
             for shortcut in loaded_config["shortcuts"]["custom"]:
                 logger.info(
-                    f"""Loaded custom shortcut: [{shortcut}: {loaded_config["shortcuts"]["custom"][shortcut]}"""
+                    f"""Loaded custom shortcut: [{shortcut}: {loaded_config["shortcuts"]["custom"][shortcut]}]"""
                 )
 
             # Update the CONFIG dictionary.

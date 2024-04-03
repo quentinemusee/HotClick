@@ -18,16 +18,17 @@
 
 from src.config        import CONFIG
 from PySide6.QtCore    import Qt, QPoint, QRect, QSize
-from PySide6.QtGui     import QColor, QFont, QPainter, QMouseEvent, QPaintEvent, QResizeEvent
+from PySide6.QtGui     import QColor, QFont, QFontMetrics, QPainter, QMouseEvent, QPaintEvent, QResizeEvent
 from PySide6.QtWidgets import QSizeGrip, QWidget
 from src.config        import STYLE
 import typing
+import math
 import src.logger          as logger
 import keyboard
 import string
 import src.utils           as utils
 
-# =---------------------------------------------------------------------------------------= #
+# =-----------------------------------------------------------------------------------------------------= #
 
 
 # =--------------------------------------------------= #
@@ -87,22 +88,22 @@ class CircleWindow(QWidget):
         super().__init__()
 
         # Initialize the straight-forward attributes.
-        self.__virtual_parent: typing.Optional[QWidget] = virtual_parent
-        self.__old_position: typing.Optional[QPoint] = None
-        self.__hotkey: str = hotkey if hotkey else \
-            next(c for c in string.printable if c not in getattr(self.__virtual_parent, "hotkeys"))
-        self.__input_hotkeys: typing.List[str] = []
-        self.__last_input_hotkeys: typing.List[str] = []
-        self.__hook: typing.Optional[typing.Callable[..., None]] = None
-        self.__is_resizing: bool = False
+        self._virtual_parent: typing.Optional[QWidget] = virtual_parent
+        self._old_position: typing.Optional[QPoint] = None
+        self._hotkey: str = hotkey if hotkey else \
+            next(c for c in string.printable if c not in getattr(self._virtual_parent, "hotkeys"))
+        self._input_hotkeys: typing.List[str] = []
+        self._last_input_hotkeys: typing.List[str] = []
+        self._hook: typing.Optional[typing.Callable[..., None]] = None
+        self._is_resizing: bool = False
 
         # Call the UI initialization method to initialize the UI itself.
-        self.__init_ui(position, size)
+        self._init_ui(position, size)
 
         # Trace.
-        logger.info(f"New hotkey \"{self.__hotkey.upper()}\" created")
+        logger.info(f"New hotkey \"{self._hotkey.upper()}\" created")
 
-    def __init_ui(
+    def _init_ui(
             self,
             position: typing.Optional[QPoint] = None,
             size: QSize = QSize(60, 60)
@@ -127,13 +128,17 @@ class CircleWindow(QWidget):
         # Set the Geometry of the Window.
         self.setGeometry(100, 100, size.width(), size.height())
 
+        # Set the minimum size.
+        self.setMinimumSize(QSize(50, 50))
+
         # If a position is provided, move the UI.
         if position is not None:
             self.move(position.x() - self.width(), position.y() - self.height())
             # self.move(position)
 
         # Initialize the corner grip.
-        self.__corner_grip: QSizeGrip = QSizeGrip(self)
+        self._corner_grip: QSizeGrip = QSizeGrip(self)
+        self._corner_grip.setFixedSize(QSize(20, 20))
 
     # ================== #
     # Overridden methods #
@@ -157,20 +162,33 @@ class CircleWindow(QWidget):
 
         # Give the QPainter instance an Ellipse shape.
         qp.drawEllipse(8, 8, self.width()-8, self.height()-8)
-        
-        # Give the QPainter instance a custom font.
-        # The font depends on the number of hotkeys.
-        if len(self.__last_input_hotkeys) <= 1:
-            qp.setFont(QFont("Arial", 22, QFont.Bold))
-        elif len(self.__last_input_hotkeys) == 2:
-            qp.setFont(QFont("Arial", 14, QFont.Bold))
-        elif len(self.__last_input_hotkeys) == 3:
-            qp.setFont(QFont("Arial", 8, QFont.Bold))
-        else:
-            qp.setFont(QFont("Arial", 5, QFont.Bold))
-        
-        # Draw the text "A" centered within the QPainter instance.
-        qp.drawText(QRect(8, 8, self.width()-8, self.height()-8), Qt.AlignCenter, self.__hotkey.upper())
+
+        # Calculate available space for text.
+        max_width = self.width() - 16
+        max_height = self.height() - 16
+
+        # Start with a larger font size and decrease until the text fits.
+        font_size = 22
+        font = QFont("Arial", font_size, QFont.Bold)
+
+        # Compute the text metrics for the iteration loop.
+        metrics = QFontMetrics(font)
+        text_width = metrics.horizontalAdvance(self._hotkey.upper())
+        text_height = metrics.height()
+
+        # Adjust font size until the text fits
+        while text_width > max_width or text_height > max_height:
+            font_size -= 1
+            font.setPointSize(font_size)
+            metrics = QFontMetrics(font)
+            text_width = metrics.horizontalAdvance(self._hotkey.upper())
+            text_height = metrics.height()
+
+        # Set the final QPainter font.
+        qp.setFont(font)
+
+        # Draw the text hotkey text centered within the QPainter instance.
+        qp.drawText(QRect(8, 8, self.width()-8, self.height()-8), Qt.AlignCenter, self._hotkey.upper())
 
     def mousePressEvent(self, event: QMouseEvent):
         """
@@ -186,37 +204,37 @@ class CircleWindow(QWidget):
         # If the event is a left click, update the old position attribute.
         # The MainWindow's config dictionary will be updated once the mouse's click get released.
         if event.button() == Qt.LeftButton:
-            self.__old_position = event.globalPosition().toPoint()
+            self._old_position = event.globalPosition().toPoint()
 
             # Trace.
-            logger.info(f"Move the hotkey \"{self.__hotkey.upper()}\" from ({self.pos().x()};{self.pos().y()})")
+            logger.info(f"Move the hotkey \"{self._hotkey.upper()}\" from ({self.pos().x()};{self.pos().y()})")
 
         # Otherwise, if the event is a right click and KEYBOARD_HOTKEY_INPUT_FLAG is False
         # start the keyboard listener with the update_hotkey method as a callback.
         # The MainWindow's config dictionary will be updated once a new valid and unique hotkey get pressed.
         elif event.button() == Qt.RightButton and not KEYBOARD_HOTKEY_INPUT_FLAG:
-            self.__hook = keyboard.on_press(self.__update_hotkey)
+            self._hook = keyboard.on_press(self._update_hotkey)
             KEYBOARD_HOTKEY_INPUT_FLAG = True
 
             # Trace.
-            logger.info(f"Edit the hotkey \"{self.__hotkey.upper()}\"")
+            logger.info(f"Edit the hotkey \"{self._hotkey.upper()}\"")
 
         # Otherwise, if the event is a middle click (scroll button), destroy the CircleWindow instance.
         # Update also the MainWindow's config dictionary.
         elif event.button() == Qt.MiddleButton:
             self.close()
             self.deleteLater()
-            getattr(self.__virtual_parent, "circle_windows").remove(self)
-            utils.update_dict(CONFIG, "hotkeys", self.__hotkey.lower(), delete=True)
+            getattr(self._virtual_parent, "circle_windows").remove(self)
+            utils.update_dict(CONFIG, "hotkeys", self._hotkey.lower(), delete=True)
 
             # Set KEYBOARD_HOTKEY_INPUT_FLAG to False
             # and unhook the hook function if it exists.
-            if self.__hook is not None:
+            if self._hook is not None:
                 KEYBOARD_HOTKEY_INPUT_FLAG = False
-                utils.unhook(self.__hook)
+                utils.unhook(self._hook)
 
             # Trace.
-            logger.info(f"Delete the hotkey \"{self.__hotkey.upper()}\"")
+            logger.info(f"Delete the hotkey \"{self._hotkey.upper()}\"")
 
         # Continue propagating the MousePressEvent.
         super().mousePressEvent(event)
@@ -248,7 +266,7 @@ class CircleWindow(QWidget):
             )
 
             # Trace.
-            logger.info(f"Move the hotkey \"{self.__hotkey.upper()}\" to ({self.pos().x()};{self.pos().y()})")
+            logger.info(f"Move the hotkey \"{self._hotkey.upper()}\" to ({self.pos().x()};{self.pos().y()})")
 
         # Continue propagating the MousePressEvent.
         super().mousePressEvent(event)
@@ -262,16 +280,16 @@ class CircleWindow(QWidget):
         """
 
         # If is_resizing is True, update the old position attribute.
-        if self.__is_resizing:
-            self.__old_position = event.globalPosition().toPoint()
-            self.__is_resizing = False
+        if self._is_resizing:
+            self._old_position = event.globalPosition().toPoint()
+            self._is_resizing = False
 
         # If the mouse move with the left mouse button pressed, update the CircleWindow's position.
-        if event.buttons() == Qt.LeftButton and self.__old_position is not None:
+        if event.buttons() == Qt.LeftButton and self._old_position is not None:
             tmp: QPoint = event.globalPosition().toPoint()
-            delta: QPoint = QPoint(tmp - self.__old_position)
+            delta: QPoint = QPoint(tmp - self._old_position)
             self.move(int(self.x() + delta.x()), int(self.y() + delta.y()))
-            self.__old_position = tmp
+            self._old_position = tmp
 
         # Continue propagating the MousePressEvent.
         super().mousePressEvent(event)
@@ -287,17 +305,26 @@ class CircleWindow(QWidget):
         # Call the super class resizeEvent method.
         super().resizeEvent(event)
 
-        # Update the grip.
-        self.__update_grip()
+        # Update the grip position and size.
+        ellipse_width = self.width()
+        ellipse_height = self.height()
+        ellipse_center_x = ellipse_width / 2 + 10
+        ellipse_center_y = ellipse_height / 2 + 10
+        angle = math.atan(ellipse_height / ellipse_width)
+        self._corner_grip.move(
+            int(ellipse_center_x - ellipse_width / 2 * math.cos(angle) - self._corner_grip.width() / 2),
+            int(ellipse_center_y - ellipse_height / 2 * math.sin(angle) - self._corner_grip.height() / 2)
+        )
+        self._corner_grip.resize(QSize(int(self.width()/5), int(self.height()/5)))
 
         # Keep in memory that the CircleWindow instance is getting resized, not moved.
-        self.__is_resizing = True
+        self._is_resizing = True
 
     # =============== #
     # Private methods # 
     # =============== #
 
-    def __update_hotkey(self, event: utils.KeyboardEvent):
+    def _update_hotkey(self, event: utils.KeyboardEvent):
         """
         Update the hotkey displayed on the CircleWindow instance.
 
@@ -312,29 +339,29 @@ class CircleWindow(QWidget):
         event_hotkey: str = event.name.lower()
 
         # If the hotkey has already been registered, return.
-        if event_hotkey in self.__input_hotkeys:
+        if event_hotkey in self._input_hotkeys:
             return
 
         # Add the new event hotkey to the input hotkey attribute.
-        self.__input_hotkeys.append(event_hotkey)
+        self._input_hotkeys.append(event_hotkey)
 
         # If the hotkey isn't among ["ctrl", "maj", "alt"], unhook the keyboard listener,
         # set KEYBOARD_HOTKEY_INPUT_FLAG to False and update the CircleWindow instance's attributes
         if event_hotkey not in ["ctrl", "maj", "alt"]:
 
             # Ensure the hotkey isn't already applied to another CircleWindow
-            hotkey: str = '+'.join(self.__input_hotkeys)
-            if hotkey in getattr(self.__virtual_parent, "hotkeys"):
+            hotkey: str = '+'.join(self._input_hotkeys)
+            if hotkey in getattr(self._virtual_parent, "hotkeys"):
                 logger.error(f"Hotkey \"{hotkey}\" is already assigned!")
-                self.__input_hotkeys = []
+                self._input_hotkeys = []
                 return
 
-            utils.unhook(self.__hook)
+            utils.unhook(self._hook)
             KEYBOARD_HOTKEY_INPUT_FLAG = False
-            previous_hotkey: str = self.__hotkey
-            self.__hotkey = hotkey
-            self.__last_input_hotkeys = self.__input_hotkeys.copy()
-            self.__input_hotkeys = []
+            previous_hotkey: str = self._hotkey
+            self._hotkey = hotkey
+            self._last_input_hotkeys = self._input_hotkeys.copy()
+            self._input_hotkeys = []
             self.update()
 
             # Update the CONFIG dictionary by calling the utils.update_dict
@@ -354,22 +381,7 @@ class CircleWindow(QWidget):
             )
 
             # Trace.
-            logger.info(f"Hotkey edited to \"{self.__hotkey.upper()}\"")
-
-    def __update_grip(self) -> None:
-        """This method update the grip."""
-
-        # Update the content margins.
-        self.setContentsMargins(8, 8, 8, 8)
-
-        # Retrieve the current Rect.
-        out_rect = self.rect()
-
-        # Adjust the rect.
-        in_rect = out_rect.adjusted(8, 8, -8, -8)
-
-        # Update the grip geometry.
-        self.__corner_grip.setGeometry(QRect(out_rect.topLeft(), in_rect.topLeft()))
+            logger.info(f"Hotkey edited to \"{self._hotkey.upper()}\"")
 
     # ============== #
     # Getter methods #
@@ -383,7 +395,7 @@ class CircleWindow(QWidget):
         :returns: The CircleWindow's hotkey.
         :rtype: str
         """
-        return self.__hotkey
+        return self._hotkey
 
     @property
     def position(self) -> QPoint:

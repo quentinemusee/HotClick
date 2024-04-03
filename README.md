@@ -21,5 +21,5 @@ python -m venv venv
 ~~~
 
 ## Q&A
-1. _Why do you software use both keyboard and pynput.keyboard libraries ? Doesn't this amount to importing two different libraries for the same purpose? If you're going to use pynput.mouse, why not get rid of keyboard library ?_
+1. _Why do your software use both keyboard and pynput.keyboard libraries ? Doesn't this amount to importing two different libraries for the same purpose? If you're going to use pynput.mouse, why not get rid of keyboard library ?_
 **The reason I didn't get rid of the keyboard library is simple: it's much easier to use and read than pynput.keyboard. I'm aware of the "duplicate dependency" this generates, but when I tried to migrate all the code calling on keyboard, the result was functional but inelegant, unreadable. I'll do a real migration the day pynput.keyboard makes it possible to check at any time whether a given key is pressed, and to do so cross-platform.**

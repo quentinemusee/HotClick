@@ -128,6 +128,21 @@
     |         |                 | Fix the hotkeys clicks event being      |
     |         |                 | stacked when pressing a hotkey          |
     |         |                 | continuously.                           |
+    |---------|-----------------|-----------------------------------------|
+    |  1.0.0  |      2024-04-03 | Disable the menu settings save buttons  |
+    |         |                 | when is_valid method returns False.     |
+    |         |                 | Set the CircleWindow minimum size to    |
+    |         |                 | 50x50.                                  |
+    |         |                 | Make the CircleWindow sizegrip position |
+    |         |                 | the closest possible to the ellipse and |
+    |         |                 | make its QSizeGrip "hitbox" larger and  |
+    |         |                 | way easier to grab/use for resizing.    |
+    |         |                 | Make the MainWindow always on top,      |
+    |         |                 | along with the CircleWindows.           |
+    |         |                 | Get rid of the use of '__' in classes   |
+    |         |                 | attributes and methods.                 |
+    |         |                 | Make the CircleWindow text font adapted |
+    |         |                 | to fit the available space.             |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -150,17 +165,13 @@ import sys
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-03-31"
+__date__         = "2024-04-03"
 __license__      = "LGPL-2.1"
 __maintainer__   = "Quentin Raimbaud"
-__status__       = "Development"
-__todo__         = [
-    "Make the hotkeys label fit their CircleWindow",
-    "Remove use of '__' for attribute: this is definitely a bad practice."
-]
-__version__      = "0.8.2"
+__status__       = "Production"
+__version__      = "1.0.0"
 
-# =--------------------------------------------------------------------= #
+# =-------------------------------------------------= #
 
 
 # =-----------= #

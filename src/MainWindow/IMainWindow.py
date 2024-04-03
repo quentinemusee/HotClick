@@ -82,6 +82,9 @@ class IMainWindow(QMainWindow):
     def _init_ui(self) -> None:
         """Initialize the UI of the CircleWindow instance itself."""
 
+        # Set the Window Flag.
+        self.setWindowFlags(Qt.WindowStaysOnTopHint)
+
         # Set the title and icon of the Window.
         self.setWindowTitle("HotClick")
         self.setWindowIcon(QIcon(str(PATH / Path("img") / Path("icon.png"))))
