@@ -1,0 +1,194 @@
+name: Build & Release
+
+# Only triggers when a tag following the "vX.Y.Z" or "vX.Y.Z-*" convention
+# is pushed (e.g. v1.2.3, v1.2.3-alpha, v0.5.0-rc1, v2.0.0-beta.2, ...).
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+# Required to publish a Release.
+permissions:
+  contents: write
+
+jobs:
+  check-tag:
+    name: Validate tag format
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate "vX.Y.Z(-*)"
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          echo "Received tag: ${TAG}"
+          if ! [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
+            echo "::error::Tag \"${TAG}\" does not match the expected \"vX.Y.Z\" or \"vX.Y.Z-*\" format."
+            exit 1
+          fi
+
+  build:
+    name: Build (${{ matrix.suffix }})
+    needs: check-tag
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            suffix: windows
+          - os: macos-15-intel   # Intel runner (x86_64)
+            suffix: macos-intel
+          - os: macos-latest      # Apple Silicon runner (arm64 / M1+)
+            suffix: macos-arm64
+
+    steps:
+      - name: Checkout (with submodules)
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller Pillow
+
+      - name: Build via compile.py
+        run: python compile.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: HotClick-${{ matrix.suffix }}
+          path: HotClick-*.zip
+          if-no-files-found: error
+
+  release:
+    name: Publish Release
+    needs: build
+    # arm64 uses ~30-40% less power than the x64 equivalent, and this job
+    # (git/bash + Node-based actions) has no architecture-specific needs.
+    # Only available for free on public repositories.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout (full history, for changelog generation)
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Gather files to publish
+        run: |
+          mkdir -p release
+          find artifacts -type f -name "*.zip" -exec cp {} release/ \;
+          ls -la release
+
+      - name: Generate changelog from commit messages since the previous tag
+        run: |
+          CURRENT_TAG="${GITHUB_REF_NAME}"
+
+          # Find the tag right before the current one, ordered by creation date.
+          PREVIOUS_TAG=$(git tag --sort=-creatordate | grep -A1 -x "${CURRENT_TAG}" | tail -n1)
+          if [ "${PREVIOUS_TAG}" == "${CURRENT_TAG}" ]; then
+            PREVIOUS_TAG=""
+          fi
+
+          if [ -z "${PREVIOUS_TAG}" ]; then
+            echo "No previous tag found, listing all commits up to ${CURRENT_TAG}."
+            RANGE="${CURRENT_TAG}"
+          else
+            echo "Previous tag: ${PREVIOUS_TAG}"
+            RANGE="${PREVIOUS_TAG}..${CURRENT_TAG}"
+          fi
+
+          # Section title and summary-line word for each recognized
+          # Conventional Commits type, plus a fallback "other" bucket
+          # for commits that don't follow the "type: message" convention.
+          declare -A HEADER_TITLE=(
+            [feat]="Features"
+            [fix]="Fixes"
+            [perf]="Performance"
+            [refactor]="Refactors"
+            [test]="Tests"
+            [docs]="Documentation"
+            [style]="Style"
+            [build]="Build"
+            [ci]="CI"
+            [chore]="Chores"
+            [other]="Other"
+          )
+          declare -A SUMMARY_WORD=(
+            [feat]="features"
+            [fix]="fixes"
+            [perf]="performance improvements"
+            [refactor]="refactors"
+            [test]="tests"
+            [docs]="documentation changes"
+            [style]="style changes"
+            [build]="build changes"
+            [ci]="ci"
+            [chore]="chores"
+            [other]="other changes"
+          )
+          TYPE_ORDER=(feat fix perf refactor test docs style build ci chore other)
+
+          # Bucket every commit subject into its Conventional Commits type.
+          declare -A COMMITS_BY_TYPE
+          while IFS= read -r subject; do
+            [ -z "${subject}" ] && continue
+            if [[ "${subject}" =~ ^(feat|fix|perf|refactor|test|docs|style|build|ci|chore)(\([^\)]*\))?!?:[[:space:]]*(.*)$ ]]; then
+              type="${BASH_REMATCH[1]}"
+              message="${BASH_REMATCH[3]}"
+            else
+              type="other"
+              message="${subject}"
+            fi
+            COMMITS_BY_TYPE[${type}]+="- ${message}"$'\n'
+          done < <(git log --pretty=format:"%s" "${RANGE}"; echo)
+
+          # Build the "This release includes the following X/Y/Z:" intro,
+          # only naming the types that actually have at least one commit.
+          PRESENT_WORDS=()
+          for type in "${TYPE_ORDER[@]}"; do
+            if [ -n "${COMMITS_BY_TYPE[${type}]:-}" ]; then
+              PRESENT_WORDS+=("${SUMMARY_WORD[${type}]}")
+            fi
+          done
+
+          {
+            if [ "${#PRESENT_WORDS[@]}" -gt 0 ]; then
+              SUMMARY=$(IFS=/; echo "${PRESENT_WORDS[*]}")
+              echo "This release includes the following ${SUMMARY}:"
+              echo
+            fi
+
+            for type in "${TYPE_ORDER[@]}"; do
+              if [ -n "${COMMITS_BY_TYPE[${type}]:-}" ]; then
+                echo "### ${HEADER_TITLE[${type}]}"
+                echo
+                printf "%s" "${COMMITS_BY_TYPE[${type}]}"
+                echo
+              fi
+            done
+          } > CHANGELOG.md
+
+          echo "Generated changelog:"
+          cat CHANGELOG.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: release/*.zip
+          body_path: CHANGELOG.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
