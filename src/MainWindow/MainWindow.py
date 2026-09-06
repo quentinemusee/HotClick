@@ -26,9 +26,11 @@ from PySide6.QtGui      import QCloseEvent, QCursor, QKeySequence, QShortcut
 from PySide6.QtWidgets  import QFileDialog, QSystemTrayIcon
 from pynput.mouse       import Button, Controller
 from pathlib            import Path
+from keyboard           import KeyboardEvent
 from src.config         import CONFIG_FILE
 from src.utils          import PATH
 import typing
+import time
 import src.logger           as logger
 import keyboard
 import src.config           as config
@@ -52,7 +54,12 @@ MOUSE: Controller = Controller()
 # Declare a hotkey routine flag.
 HOTKEY_ROUTINE_IS_RUNNING: bool = False
 
-# =---------------------------------= #
+# Declare the delay, in seconds, applied before pressing the left mouse button down
+# for a "hold" hotkey, once the mouse reached its target location. Some target
+# applications miss a click pressed in the very same instant as the mouse move.
+HOLD_CLICK_DELAY: float = 0.01
+
+# =-----------------------------------------------------------------------------= #
 
 
 # =--------------= #
@@ -190,6 +197,7 @@ class MainWindow(IMainWindow):
             'y': circle_window_position.y(),
             'w': circle_window_size.width(),
             'h': circle_window_size.height(),
+            'hold': circle_window.hold,
         }
 
     def _slider_value_change(self) -> None:
@@ -236,12 +244,12 @@ class MainWindow(IMainWindow):
         # Trace.
         logger.info("Program started")
 
-    def _tray_icon_activated(self, reason: QSystemTrayIcon.ActivationReason.Trigger) -> None:
+    def _tray_icon_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """
         Callback method when the tray icon get activated through any mouse click.
 
         :param reason: The type of mouse click used on the tray icon.$
-        :type reason: QSystemTrayIcon.ActivationReason.Trigger
+        :type reason: QSystemTrayIcon.ActivationReason
         """
 
         # Make the HOTKEY_ROUTINE_IS_RUNNING global variable writable.
@@ -249,11 +257,10 @@ class MainWindow(IMainWindow):
 
         # If the application got left-clicked, restore the application.
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            # Show the application&
+            # Show the application.
             QMetaObject.invokeMethod(self, typing.cast(bytes, "show"), Qt.ConnectionType.QueuedConnection)
 
             # Set the MainWindow instance invisible on the tray
-            # $self._tray_icon.hide()
             QMetaObject.invokeMethod(self._tray_icon, typing.cast(bytes, "hide"), Qt.ConnectionType.QueuedConnection)
 
             # Set HOTKEY_ROUTINE_IS_RUNNING to False.$
@@ -270,16 +277,17 @@ class MainWindow(IMainWindow):
             pos = QCursor.pos()
             self._tray_menu.exec(QPoint(pos.x(), pos.y() - 30))
 
-    def _hotkey_routine(self, event: utils.KeyboardEvent) -> None:
+    def _hotkey_routine(self, event: KeyboardEvent) -> None:
         """
         Run the hotkey routine for clicking on the previously creates CircleWindow instances.
 
         :param event: The QMouseEvent received.
-        :type event: utils.KeyboardEvent
+        :type event: keyboard.KeyboardEvent
         """
 
         # Retrieve the event's hotkey string value.
-        original_event_hotkey: str = event.name.lower()
+        original_event_hotkey_raw: str | None = event.name
+        original_event_hotkey: str = original_event_hotkey_raw.lower() if original_event_hotkey_raw is not None else ""
 
         # Retrieve the event's hotkey string.
         event_hotkey: str = utils.handle_hotkey(event)
@@ -327,30 +335,64 @@ class MainWindow(IMainWindow):
             # Get the current mouse position before clicking.
             original_position = MOUSE.position
 
+            # Retrieve whether this hotkey is configured to hold the left
+            # mouse button down for as long as the hotkey itself is held,
+            # instead of triggering a single grouped click on release.
+            hold: bool = CONFIG["hotkeys"][event_hotkey]['hold']
+
             # Initialize a flag for pressing the
             # left mouse button only is the key
             # is pressed during this callback iteration.
             flag: bool = False
 
-            while keyboard.is_pressed(original_event_hotkey):
-                # Update the flag variable.
-                flag = True
+            # Initialize a flag to track whether the left mouse button
+            # is currently physically held down by this routine, so it
+            # can always be released, even if an unexpected error occurs.
+            pressed: bool = False
 
-                # Move the mouse to the location to click on.
-                MOUSE.position = (
-                    CONFIG["hotkeys"][event_hotkey]['x']-int(CONFIG["hotkeys"][event_hotkey]['w']/2),
-                    CONFIG["hotkeys"][event_hotkey]['y']-int(CONFIG["hotkeys"][event_hotkey]['h']/2)
-                )
+            try:
+                while keyboard.is_pressed(original_event_hotkey):
+                    # Update the flag variable.
+                    flag = True
 
-            # Simulate a Left Click if flag is True.
-            if flag:
-                MOUSE.click(Button.left)
+                    # Move the mouse to the location to click on.
+                    MOUSE.position = (
+                        CONFIG["hotkeys"][event_hotkey]['x']-int(CONFIG["hotkeys"][event_hotkey]['w']/2),
+                        CONFIG["hotkeys"][event_hotkey]['y']-int(CONFIG["hotkeys"][event_hotkey]['h']/2)
+                    )
 
-                # Move the mouse back to its original position.
-                MOUSE.position = original_position
+                    # If hold is True, press the left mouse button once, as
+                    # soon as the mouse reached the target location, and
+                    # keep it down while the loop keeps updating the
+                    # position (in case the user drags the target around).
+                    # A short delay is inserted before pressing down, since
+                    # some target applications miss the click if it is
+                    # pressed in the very same instant as the mouse move.
+                    if hold and not pressed:
+                        time.sleep(HOLD_CLICK_DELAY)
+                        MOUSE.press(Button.left)
+                        pressed = True
+            finally:
+                if pressed or flag:
+                    # If the left mouse button was pressed by this routine,
+                    # always release it once the hotkey itself gets released,
+                    # even if an unexpected error interrupted the loop above.
+                    if pressed:
+                        MOUSE.release(Button.left)
 
-                # Trace.
-                logger.info(f"Hotkey {event_hotkey} pressed")
+                        # Trace.
+                        logger.info(f"Hotkey {event_hotkey} released (hold)")
+
+                    # Otherwise, simulate a single grouped Left Click if flag is True.
+                    elif flag:
+                        MOUSE.click(Button.left)
+
+                        # Trace.
+                        logger.info(f"Hotkey {event_hotkey} pressed")
+
+                    # Move the mouse back to its original position.
+                    MOUSE.position = original_position
+
         # Otherwise, if the event_hotkey match a custom shortcut, execute it.
         elif event_hotkey in CONFIG["shortcuts"]["custom"]:
             bind_to: str = CONFIG["shortcuts"]["custom"][event_hotkey]
@@ -464,4 +506,4 @@ class MainWindow(IMainWindow):
         for circle_window in self._circle_windows:
             circle_window.repaint()
 
-# =---------------------------------------------------------------------------------------------------------------= #
+# =------------------------------------------------------------------------------------------------------------------= #

@@ -247,9 +247,11 @@ class IMainWindow(QMainWindow):
 
         # Set the StyleSheet.
         self.setStyleSheet(f"""
-            background-color: {STYLE["background-color"]};
+            MainWindow {{
+                background-color: {STYLE["background-color"]};
+            }}
         """)
-    
+
     def _set_hotkeys_menu_stylesheet(self) -> None:
         """Set the Hotkeys Menu StyleSheet."""
 
@@ -407,7 +409,7 @@ class IMainWindow(QMainWindow):
     # make it callable using QMetaObject.invokeMethod
     # to ensure this method is called in the main thread.
     @Slot()
-    def _load_config(self, no_load: bool = False) -> bool:
+    def _load_config(self, no_load: bool = False) -> None:
         """
         Restore the IMainWindow's attributes and widgets
         depending on the content of the json parsed config_file attribute.
@@ -416,8 +418,6 @@ class IMainWindow(QMainWindow):
 
         :param no_load: If True, don't load but exist the current CONFIG dictionary. By default, False.
         :type no_load: bool
-        :returns: The boolean result of the loading.$$
-        :rtype: bool
         """
 
         # Reset the current config.
@@ -438,6 +438,7 @@ class IMainWindow(QMainWindow):
                     hotkey,
                     QPoint(CONFIG["hotkeys"][hotkey]['x'], CONFIG["hotkeys"][hotkey]['y']),
                     QSize(CONFIG["hotkeys"][hotkey]['w'], CONFIG["hotkeys"][hotkey]['h']),
+                    CONFIG["hotkeys"][hotkey]['hold'],
                 )
 
                 # Add it to the circle windows list.
@@ -450,7 +451,7 @@ class IMainWindow(QMainWindow):
             self._hotkeys_radius_slider.setValue(CONFIG["radius"])
 
             # Return here.
-            return True
+            return
 
         # The parsing is a failure: create a new
         # config file and update the init error message.

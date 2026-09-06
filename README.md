@@ -3,14 +3,15 @@ A simple Hotkey software to bind hotkeys to click on screen.
 
 ## Installing HotClick
 HotClick requires no installation process: simply download the latest release from the [official GitHub release section](https://github.com/quentinemusee/HotClick/releases) and execute the HotClick.exe binary it contains.
-Currently, only Windows binaries are among the releases, but if you want to use this software on a different platform that supports Python, you can follow these steps to run the Python source code directly:
+You can also follow these steps to run the Python source code directly:
 1. Install Python. The process depends on the platform you're using, but the [Python official website](https://www.python.org/downloads/) downloads section is a decent place to start.
 2. Clone the [official GitHub repository](https://github.com/quentinemusee/HotClick) using either your git command line or directly from the website.
 3. **[OPTIONAL]** Create a virtual environment within the cloned repository and activate it using the following commands:
 ~~~
 python -m venv venv
-./venv/Scripts/activate
+./venv/(Scripts|bin)/activate
 ~~~
+> **_NOTE:_**  The *Scripts* or *bin* path depends on your platform.
 4. Download the library dependencies using the **requirements.txt** file within the cloned repo via the following command:
 ~~~
 python -m pip install -r requirements.txt

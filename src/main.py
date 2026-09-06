@@ -143,6 +143,12 @@
     |         |                 | attributes and methods.                 |
     |         |                 | Make the CircleWindow text font adapted |
     |         |                 | to fit the available space.             |
+    |---------|-----------------|-----------------------------------------|
+    |  1.1.0  |      2026-09-07 | Add the "hold" CircleWindow feature,    |
+    |         |                 | turn CircleWindow into a non-top-level  |
+    |         |                 | window.                                 |
+    |         |                 | Edit & fix typos in the README.md.      |
+    |         |                 | Fix minor warnings.                     |
      ‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
 """
 
@@ -165,11 +171,11 @@ import sys
 
 __author__       = "Quentin Raimbaud"
 __contact__      = "quentin.raimbaud.contact@gmail.com"
-__date__         = "2024-04-03"
+__date__         = "2026-09-07"
 __license__      = "LGPL-2.1"
 __maintainer__   = "Quentin Raimbaud"
 __status__       = "Production"
-__version__      = "1.0.0"
+__version__      = "1.1.0"
 
 # =-------------------------------------------------= #
 

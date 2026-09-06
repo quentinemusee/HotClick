@@ -16,16 +16,17 @@
 # Libraries import #
 # =--------------= #
 
-from typing            import Any, Callable, Dict, Optional, Type, TypeVar, Union
-from PySide6.QtWidgets import QLayout, QLayoutItem
+from typing            import Any, Callable, Dict, Optional, Union
+from PySide6.QtWidgets import QLayout, QLayoutItem, QWidget
 from pathlib           import Path
+from keyboard          import KeyboardEvent
 import src.logger          as logger
 import os
 import sys
 import keyboard
 import json
 
-# =---------------------------------------------------------------------------= #
+# =------------------------------------------------------------------= #
 
 
 # =--------------------------------------------------= #
@@ -38,23 +39,15 @@ import json
 # =-------------= #
 
 # Retrieve and declare the binary directory path.
-PATH: Path = os.path.dirname(sys.executable) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
+PATH: Path = Path(os.path.dirname(sys.executable)) if getattr(sys, "frozen", False) else Path(__file__).parent.parent
 
-# =---------------------------------------------------------------------------------------------------------= #
-
-
-# =---= #
-# Types #
-# =---= #
-
-KeyboardEvent: Type = TypeVar("KeyboardEvent")
-
-# =----------------------------------------= #
+# =---------------------------------------------------------------------------------------------------------------= #
 
 
 # =-------------------= #
 # Clear layout function #
 # =-------------------= #
+
 
 def clear_layout(layout: Optional[QLayout]) -> None:
     """
@@ -73,12 +66,15 @@ def clear_layout(layout: Optional[QLayout]) -> None:
     # method on its widgets and the clear_layout
     # recursively on its children layouts.
     for i in reversed(range(layout.count())):
-        item: QLayoutItem = layout.takeAt(i)
-        if item.widget() is not None:
-            item.widget().deleteLater()
-            item.widget().setParent(None)
-        elif item.layout() is not None:
-            clear_layout(item.layout())
+        item: QLayoutItem | None = layout.takeAt(i)
+        if item is not None:
+            item_widget: QWidget | None = item.widget()
+            item_layout: QLayout | None = item.layout()
+            if item_widget is not None:
+                item_widget.deleteLater()
+                item_widget.setParent(None)
+            elif item_layout is not None:
+                clear_layout(item_layout)
 
 # =-------------------------------------------------= #
 
@@ -158,11 +154,12 @@ def handle_hotkey(event: KeyboardEvent) -> str:
     Return the handled hotkey string.
 
     :param event: The QMouseEvent received.
-    :type event: KeyboardEvent
+    :type event: keyboard.KeyboardEvent
     """
 
     # Retrieve the event's hotkey string value.
-    event_hotkey: str = event.name.lower()
+    event_hotkey_raw: str | None = event.name
+    event_hotkey: str = event_hotkey_raw.lower() if event_hotkey_raw is not None else ""
 
     # If the event_hotkey is a handled
     # transformer, use an empty string instead.
@@ -245,7 +242,12 @@ def json_write(dictionary: Dict[Any, Any], file: Path) -> None:
         theme.write(json.dumps(dictionary, indent=4))
 
 
-def update_dict(dictionary: Dict[Any, Any], *keys: str, value: Any = None, delete: bool = False) -> None:
+def update_dict(
+        dictionary: Dict[Any, Any],
+        *keys: str,
+        value: Any | list[Any] | dict[Any, Any] | None = None,
+        delete: bool = False
+) -> None:
     """
     Edit the provided dictionary giving the keys to access the value to edit.
     If a value is provided, assign such a value to the corresponding keys from the dictionary argument.
@@ -268,8 +270,9 @@ def update_dict(dictionary: Dict[Any, Any], *keys: str, value: Any = None, delet
         for key in list(dictionary.keys()):
             del dictionary[key]
         try:
-            for key in value:
-                dictionary[key] = value[key]
+            if value is not None:
+                for key in value:
+                    dictionary[key] = value[key]
         except TypeError:
             logger.error("Trying to assign a non-iterable value to a dictionary.")
         return

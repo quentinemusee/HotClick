@@ -43,7 +43,7 @@ import src.utils      as utils
 CONFIG_FILE: List[Path] = [Path(r"C:\Users\quent\Desktop\HotClick\configs\config.json")]
 
 # CONFIG and DEFAULT_CONFIG dictionaries.
-DEFAULT_CONFIG: Dict[str, Union[int, str, List[int], Dict[str, Dict[str, Union[str, int]]], Dict[str, str]]] = {
+DEFAULT_CONFIG: Dict[str, Union[None, int, str, List[int], Dict[str, Dict[str, Union[str, int]]], Dict[str, str]]] = {
     "radius": 60,
     "last_position": None,
     "last_setting_menu": None,
@@ -96,7 +96,7 @@ DEFAULT_STYLE: Dict[str, Union[str, Dict[str, str]]] = {
 }
 STYLE = copy.deepcopy(DEFAULT_STYLE)
 
-# =------------------------------------------= #
+# =----------------------------------------------------------------------------------------------------------------= #
 
 
 # =----------------------= #
@@ -138,10 +138,17 @@ def load_config() -> bool:
 
             # Ensure every hotkey contains the required values.
             for hotkey in loaded_config["hotkeys"]:
+                # Deprecated config handling: older config files predate the
+                # "hold" parameter. Default it to False so such config files
+                # keep working as before, and so that re-exporting them now
+                # writes the "hold" field going forward.
+                loaded_config["hotkeys"][hotkey].setdefault("hold", False)
+
                 logger.info(
                     f"""Loaded hotkey: ["{hotkey}": {loaded_config["hotkeys"][hotkey]["type"]}, """
                     f"""({loaded_config["hotkeys"][hotkey]['x']};{loaded_config["hotkeys"][hotkey]['y']})] """
-                    f"""<{loaded_config["hotkeys"][hotkey]['w']};{loaded_config["hotkeys"][hotkey]['h']}>"""
+                    f"""<{loaded_config["hotkeys"][hotkey]['w']};{loaded_config["hotkeys"][hotkey]['h']}> """
+                    f"""hold={loaded_config["hotkeys"][hotkey]['hold']}"""
                 )
 
             # Ensure every shortcut contains the required values.
@@ -244,4 +251,4 @@ def save_style() -> None:
     # Call utils.json_write with the appropriated arguments.
     utils.json_write(STYLE, PATH / Path("theme.json"))
 
-# =-----------------------------------------------------------------= #
+# =--------------------------------------------------------------------------= #
